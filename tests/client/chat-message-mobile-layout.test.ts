@@ -26,6 +26,8 @@ describe('chat message mobile layout guards', () => {
     expect(chatPanel).toContain('.header-title-stack--with-workspace .header-session-title')
     expect(chatPanel).toContain('font-size: 13px;')
     expect(chatPanel).toContain('font-size: 10px;')
+    expect(chatPanel).toMatch(/@media \(max-width: \$breakpoint-mobile\)[\s\S]*?\.header-session-title\s*\{[\s\S]*?display:\s*inline-block;/)
+    expect(chatPanel).not.toContain('.header-session-title {\n    display: none;')
 
     expect(messageList).toContain('--tool-mascot-height: 213px;')
     expect(messageList).toContain('height: var(--tool-mascot-height);')

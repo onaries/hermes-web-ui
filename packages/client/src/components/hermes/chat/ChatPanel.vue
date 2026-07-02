@@ -3005,15 +3005,27 @@ async function handleSessionModelCustomSubmit() {
 @media (max-width: $breakpoint-mobile) {
   .chat-header {
     padding: calc(16px + env(safe-area-inset-top, 0px)) 12px 16px 52px;
+    gap: 8px;
   }
 
   .header-sidebar-toggle {
     display: none;
   }
 
+  .header-left {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .header-title-stack {
+    gap: 4px;
+  }
 
   .header-session-title {
-    display: none;
+    display: inline-block;
+    max-width: 100%;
+    font-size: 13px;
+    line-height: 18px;
   }
 
 }
