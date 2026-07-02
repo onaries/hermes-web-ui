@@ -652,6 +652,7 @@ export class CodingAgentRunManager {
     mode?: 'scoped' | 'global'
     provider?: string
     model?: string
+    workspace?: string | null
   }): boolean {
     const run = this.getBySession(sessionId)
     if (!run || run.exited) return false
@@ -664,6 +665,8 @@ export class CodingAgentRunManager {
       if (provider && run.launch.provider !== provider) return false
       if (model && run.launch.model !== model) return false
     }
+    const workspace = String(launch.workspace || '').trim()
+    if (workspace && run.launch.workspaceDir !== workspace) return false
     if (!hasManagedHermesMcpConfig(run)) return false
     return true
   }
@@ -672,7 +675,18 @@ export class CodingAgentRunManager {
     const existingRunId = this.sessionIndex.get(launch.sessionId)
     if (existingRunId) {
       const existing = this.runs.get(existingRunId)
-      if (existing && !existing.exited) return { runId: existing.id, pid: existing.pty?.pid || existing.currentChild?.pid || 0 }
+      if (existing && !existing.exited) {
+        if (this.isSessionLaunchCompatible(launch.sessionId, {
+          agentId: launch.agentId,
+          mode: launch.mode,
+          provider: launch.provider,
+          model: launch.model,
+          workspace: launch.workspaceDir,
+        })) {
+          return { runId: existing.id, pid: existing.pty?.pid || existing.currentChild?.pid || 0 }
+        }
+        this.stop(launch.sessionId, { reportClosed: false })
+      }
     }
 
     const runId = launch.agentSessionId || makeId()

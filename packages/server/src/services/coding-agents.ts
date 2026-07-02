@@ -1788,11 +1788,13 @@ export async function startCodingAgentRun(
     throw err
   }
   const agentSessionId = resolvedInput.agentSessionId || existingAgentSessionId || makeAgentSessionId()
+  const requestedWorkspace = String(resolvedInput.workspace || existingSession?.workspace || '').trim()
   const canResumeNativeSession = existingSession
     ? storedCodingAgentMode(existingSession) === requestedMode &&
       (existingSession.agent === (id === 'codex' ? 'codex' : 'claude') || !existingSession.agent) &&
       String(existingSession.provider || '').trim() === String(resolvedInput.provider || '').trim() &&
-      String(existingSession.model || '').trim() === String(resolvedInput.model || '').trim()
+      String(existingSession.model || '').trim() === String(resolvedInput.model || '').trim() &&
+      String(existingSession.workspace || '').trim() === requestedWorkspace
     : false
   const existingNativeSessionId = canResumeNativeSession ? existingSession?.agent_native_session_id || '' : ''
   const agentNativeSessionId = resolvedInput.agentNativeSessionId || existingNativeSessionId || (id === 'claude-code' ? randomUUID() : '')

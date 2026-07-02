@@ -38,6 +38,7 @@ function makeHome() {
   const home = mkdtempSync(join(tmpdir(), 'hermes-coding-agent-resume-'))
   homes.push(home)
   process.env.HERMES_WEB_UI_HOME = home
+  process.env.HERMES_CODING_AGENT_GLOBAL_HOME = join(home, 'global-home')
   return home
 }
 
@@ -54,6 +55,7 @@ describe('coding agent resumed session config', () => {
 
   afterEach(() => {
     delete process.env.HERMES_WEB_UI_HOME
+    delete process.env.HERMES_CODING_AGENT_GLOBAL_HOME
     for (const home of homes.splice(0)) rmSync(home, { recursive: true, force: true })
   })
 
@@ -234,6 +236,46 @@ describe('coding agent resumed session config', () => {
     expect(startRunMock).toHaveBeenCalledWith(expect.objectContaining({
       agentNativeSessionId: '11111111-1111-4111-8111-111111111111',
       nativeResume: true,
+    }))
+  })
+
+  it('does not resume a stored Codex native session when the workspace changes', async () => {
+    makeHome()
+    getSessionMock.mockReturnValue({
+      id: 'session-1',
+      profile: 'default',
+      source: 'coding_agent',
+      agent: 'codex',
+      agent_mode: 'scoped',
+      agent_session_id: 'agent-session-1',
+      agent_native_session_id: 'codex-scoped-thread',
+      provider: 'deepseek',
+      model: 'deepseek-v4-pro',
+      workspace: '/tmp/old-workspace',
+    })
+    readConfigYamlForProfileMock.mockResolvedValue({})
+    safeReadFileMock.mockResolvedValue('')
+
+    const { startCodingAgentRun } = await import('../../packages/server/src/services/coding-agents')
+    await startCodingAgentRun('codex', {
+      sessionId: 'session-1',
+      mode: 'scoped',
+      provider: 'deepseek',
+      model: 'deepseek-v4-pro',
+      baseUrl: 'https://api.deepseek.com',
+      apiKey: 'sk-deepseek',
+      apiMode: 'chat_completions',
+      workspace: '/tmp/new-workspace',
+    })
+
+    expect(startRunMock).toHaveBeenCalledWith(expect.objectContaining({
+      agentNativeSessionId: '',
+      nativeResume: false,
+      workspaceDir: '/tmp/new-workspace',
+    }))
+    expect(updateSessionMock).toHaveBeenCalledWith('session-1', expect.objectContaining({
+      agent_native_session_id: '',
+      workspace: '/tmp/new-workspace',
     }))
   })
 

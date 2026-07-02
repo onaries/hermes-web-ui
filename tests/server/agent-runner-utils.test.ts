@@ -237,6 +237,70 @@ describe('coding agent run state', () => {
     }
   })
 
+  it('restarts an existing coding-agent runner when the workspace changes', () => {
+    const codexHome = mkdtempSync(join(tmpdir(), 'hwui-codex-workspace-'))
+    try {
+      writeFileSync(join(codexHome, 'config.toml'), '[mcp_servers.hermes-studio]\ncommand = "node"\n')
+      const workspaceOne = join(codexHome, 'workspace-one')
+      const workspaceTwo = join(codexHome, 'workspace-two')
+      const manager = new CodingAgentRunManager()
+      ;(manager as any).ensureDbSession = () => {}
+      ;(manager as any).emitToChat = () => {}
+
+      manager.start({
+        agentSessionId: 'agent-session-1',
+        agentId: 'codex',
+        mode: 'scoped',
+        profile: 'default',
+        provider: 'test-provider',
+        model: 'gpt-test',
+        sessionId: 'chat-session-1',
+        command: 'codex',
+        args: [],
+        shellCommand: 'codex',
+        workspaceDir: workspaceOne,
+        env: { CODEX_HOME: codexHome },
+        state: { messages: [], isWorking: false, events: [], queue: [] },
+      })
+
+      expect(manager.isSessionLaunchCompatible('chat-session-1', {
+        agentId: 'codex',
+        mode: 'scoped',
+        provider: 'test-provider',
+        model: 'gpt-test',
+        workspace: workspaceTwo,
+      })).toBe(false)
+
+      const restarted = manager.start({
+        agentSessionId: 'agent-session-2',
+        agentId: 'codex',
+        mode: 'scoped',
+        profile: 'default',
+        provider: 'test-provider',
+        model: 'gpt-test',
+        sessionId: 'chat-session-1',
+        command: 'codex',
+        args: [],
+        shellCommand: 'codex',
+        workspaceDir: workspaceTwo,
+        env: { CODEX_HOME: codexHome },
+        state: { messages: [], isWorking: false, events: [], queue: [] },
+      })
+
+      expect(restarted.runId).toBe('agent-session-2')
+      expect(manager.isSessionLaunchCompatible('chat-session-1', {
+        agentId: 'codex',
+        mode: 'scoped',
+        provider: 'test-provider',
+        model: 'gpt-test',
+        workspace: workspaceTwo,
+      })).toBe(true)
+      manager.shutdown()
+    } finally {
+      rmSync(codexHome, { recursive: true, force: true })
+    }
+  })
+
   it('updates the shared chat session state during streaming', () => {
     const manager = new CodingAgentRunManager()
     const state: any = { messages: [], isWorking: false, events: [], queue: [] }
