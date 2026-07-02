@@ -69,6 +69,8 @@ export interface RunEvent {
   /** Final response text on `run.completed`. May be empty/null if the agent
    * silently swallowed an upstream error — see chat store for fallback. */
   output?: string | null
+  /** Run-level workspace diff summary attached to terminal run events. */
+  workspace_run_change?: unknown
   usage?: {
     input_tokens: number
     output_tokens: number
@@ -155,6 +157,7 @@ const sessionEventHandlers = new Map<string, {
   onReasoningAvailable: (event: RunEvent) => void
   onToolStarted: (event: RunEvent) => void
   onToolCompleted: (event: RunEvent) => void
+  onWorkspaceDiffCompleted?: (event: RunEvent) => void
   onSubagentEvent?: (event: RunEvent) => void
   onRunStarted: (event: RunEvent) => void
   onRunCompleted: (event: RunEvent) => void
@@ -256,6 +259,16 @@ function globalToolCompletedHandler(event: RunEvent): void {
   const handlers = sessionEventHandlers.get(sid)
   if (handlers?.onToolCompleted) {
     handlers.onToolCompleted(event)
+  }
+}
+
+function globalWorkspaceDiffCompletedHandler(event: RunEvent): void {
+  const sid = event.session_id
+  if (!sid) return
+
+  const handlers = sessionEventHandlers.get(sid)
+  if (handlers?.onWorkspaceDiffCompleted) {
+    handlers.onWorkspaceDiffCompleted(event)
   }
 }
 
@@ -529,6 +542,7 @@ export function registerSessionHandlers(
     onReasoningAvailable: (event: RunEvent) => void
     onToolStarted: (event: RunEvent) => void
     onToolCompleted: (event: RunEvent) => void
+    onWorkspaceDiffCompleted?: (event: RunEvent) => void
     onSubagentEvent?: (event: RunEvent) => void
     onRunStarted: (event: RunEvent) => void
     onRunCompleted: (event: RunEvent) => void
@@ -682,6 +696,7 @@ export function connectChatRun(requestedProfile?: string | null, transport: Chat
     // Tool events
     chatRunSocket.on('tool.started', globalToolStartedHandler)
     chatRunSocket.on('tool.completed', globalToolCompletedHandler)
+    chatRunSocket.on('workspace.diff.completed', globalWorkspaceDiffCompletedHandler)
     chatRunSocket.on('subagent.start', globalSubagentEventHandler)
     chatRunSocket.on('subagent.tool', globalSubagentEventHandler)
     chatRunSocket.on('subagent.progress', globalSubagentEventHandler)
@@ -879,6 +894,10 @@ export function startRunViaSocket(
       onEvent(evt)
     },
     onToolCompleted: (evt: RunEvent) => {
+      if (closed) return
+      onEvent(evt)
+    },
+    onWorkspaceDiffCompleted: (evt: RunEvent) => {
       if (closed) return
       onEvent(evt)
     },

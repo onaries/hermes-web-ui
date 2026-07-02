@@ -1085,7 +1085,7 @@ function isImage(type: string): boolean {
         <span class="context-info" :class="{ 'context-warning': usagePercent > 80 }">
           <span v-if="showContextUsage" class="context-usage">
             {{ formatTokens(totalTokens) }} /
-            <NTooltip trigger="hover">
+            <NTooltip trigger="hover" :disabled="isMobileViewport">
               <template #trigger>
                 <span class="context-limit-editable" @click="handleEditContextLimit">
                   {{ formatTokens(effectiveContextLength) }}
@@ -1126,7 +1126,7 @@ function isImage(type: string): boolean {
       <div class="input-toolbar">
         <!-- Bottom bar: attach + input settings + actions -->
         <div class="input-top-bar">
-          <NTooltip trigger="hover">
+          <NTooltip trigger="hover" :disabled="isMobileViewport">
             <template #trigger>
               <NButton quaternary size="tiny" @click="handleAttachClick" circle class="toolbar-icon-button">
                 <template #icon>
@@ -1144,7 +1144,7 @@ function isImage(type: string): boolean {
             trigger="click"
             @update:value="onReasoningEffortChange"
           >
-            <NTooltip trigger="hover">
+            <NTooltip trigger="hover" :disabled="isMobileViewport">
               <template #trigger>
                 <NButton
                   quaternary
@@ -1173,7 +1173,7 @@ function isImage(type: string): boolean {
             :show-arrow="true"
             @select="handleInputSettingsSelect"
           >
-            <NTooltip trigger="hover">
+            <NTooltip trigger="hover" :disabled="isMobileViewport">
               <template #trigger>
                 <NButton
                   quaternary
@@ -1195,13 +1195,13 @@ function isImage(type: string): boolean {
             </NTooltip>
           </NDropdown>
 
-          <NTooltip trigger="hover">
+          <NTooltip trigger="hover" :disabled="isMobileViewport">
             <template #trigger>
               <NButton
                 quaternary
                 size="tiny"
                 class="input-model-button"
-                :title="props.modelLabel || t('models.selectModel')"
+                :title="isMobileViewport ? undefined : props.modelLabel || t('models.selectModel')"
                 :aria-label="props.modelLabel || t('models.selectModel')"
                 @click="handleModelButtonClick"
               >

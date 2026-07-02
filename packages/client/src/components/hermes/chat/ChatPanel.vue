@@ -3010,6 +3010,12 @@ async function handleSessionModelCustomSubmit() {
   .header-sidebar-toggle {
     display: none;
   }
+
+
+  .header-session-title {
+    display: none;
+  }
+
 }
 
 
