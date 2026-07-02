@@ -132,9 +132,7 @@ function fileChangePreview(args: Record<string, unknown>): string {
 
 function usesArgsOnlyLivePreview(toolName: string | undefined): boolean {
   const name = (toolName || '').toLowerCase()
-  return ['read_file', 'write_file', 'patch', 'terminal', 'file_change'].some(tool => name.includes(tool))
-    || name === 'command'
-    || name.includes('file change')
+  return name.includes('terminal') || name === 'command'
 }
 
 function fullToolPreview(tool: ToolCallLike): string {
@@ -142,7 +140,7 @@ function fullToolPreview(tool: ToolCallLike): string {
   const args = parseToolArgs(tool.toolArgs)
   if (isRecord(args)) {
     if (name.includes('read_file') || name.includes('write_file') || name.includes('patch')) {
-      return firstRawString(args, ['path']) || ''
+      return firstRawString(args, ['path']) || tool.toolPreview || ''
     }
     if (name.includes('skill_view')) {
       return firstRawString(args, ['name']) || tool.toolPreview || ''
@@ -154,7 +152,7 @@ function fullToolPreview(tool: ToolCallLike): string {
       return firstRawString(args, ['query']) || tool.toolPreview || ''
     }
     if (name.includes('file change') || name.includes('file_change')) {
-      return fileChangePreview(args) || ''
+      return fileChangePreview(args) || tool.toolPreview || ''
     }
     if (name.includes('search_files')) {
       return [firstRawString(args, ['pattern']), firstRawString(args, ['path'])]
