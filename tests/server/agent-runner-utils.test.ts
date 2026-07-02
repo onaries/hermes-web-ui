@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { mkdtempSync, rmSync, writeFileSync } from 'fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import {
@@ -192,6 +192,13 @@ describe('coding agent terminal output sanitizer', () => {
 })
 
 describe('coding agent run state', () => {
+  it('passes the selected workspace to Codex resume invocations', () => {
+    const source = readFileSync('packages/server/src/services/agent-runner/coding-agent-run-manager.ts', 'utf8')
+
+    expect(source).toContain("const workspaceArgs = ['--cd', run.launch.workspaceDir]")
+    expect(source).toContain("? ['exec', ...workspaceArgs, 'resume', ...commonArgs, '--', run.launch.agentNativeSessionId, input]")
+  })
+
   it('marks existing scoped Codex runners incompatible when Hermes MCP config is missing', () => {
     const codexHome = mkdtempSync(join(tmpdir(), 'hwui-codex-mcp-compat-'))
     try {

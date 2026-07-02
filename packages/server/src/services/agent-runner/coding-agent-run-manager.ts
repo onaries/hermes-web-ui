@@ -1546,8 +1546,9 @@ export class CodingAgentRunManager {
       '--skip-git-repo-check',
       '--dangerously-bypass-approvals-and-sandbox',
     ]
+    const workspaceArgs = ['--cd', run.launch.workspaceDir]
     const args = run.launch.agentNativeSessionId && run.nativeResumeReady
-      ? ['exec', 'resume', ...commonArgs, '--', run.launch.agentNativeSessionId, input]
+      ? ['exec', ...workspaceArgs, 'resume', ...commonArgs, '--', run.launch.agentNativeSessionId, input]
       : ['exec', ...commonArgs, '--cd', run.launch.workspaceDir, '--', input]
 
     const child = spawnCodingAgentChild(run.launch.command, args, {

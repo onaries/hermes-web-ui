@@ -239,7 +239,7 @@ describe('coding agent resumed session config', () => {
     }))
   })
 
-  it('does not resume a stored Codex native session when the workspace changes', async () => {
+  it('keeps a stored Codex native session when the workspace changes', async () => {
     makeHome()
     getSessionMock.mockReturnValue({
       id: 'session-1',
@@ -269,12 +269,12 @@ describe('coding agent resumed session config', () => {
     })
 
     expect(startRunMock).toHaveBeenCalledWith(expect.objectContaining({
-      agentNativeSessionId: '',
-      nativeResume: false,
+      agentNativeSessionId: 'codex-scoped-thread',
+      nativeResume: true,
       workspaceDir: '/tmp/new-workspace',
     }))
     expect(updateSessionMock).toHaveBeenCalledWith('session-1', expect.objectContaining({
-      agent_native_session_id: '',
+      agent_native_session_id: 'codex-scoped-thread',
       workspace: '/tmp/new-workspace',
     }))
   })
