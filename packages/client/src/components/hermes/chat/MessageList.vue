@@ -130,24 +130,31 @@ function fileChangePreview(args: Record<string, unknown>): string {
     .join(', ')
 }
 
+function usesArgsOnlyLivePreview(toolName: string | undefined): boolean {
+  const name = (toolName || '').toLowerCase()
+  return ['read_file', 'write_file', 'patch', 'terminal', 'file_change'].some(tool => name.includes(tool))
+    || name === 'command'
+    || name.includes('file change')
+}
+
 function fullToolPreview(tool: ToolCallLike): string {
   const name = (tool.toolName || '').toLowerCase()
   const args = parseToolArgs(tool.toolArgs)
   if (isRecord(args)) {
     if (name.includes('read_file') || name.includes('write_file') || name.includes('patch')) {
-      return firstRawString(args, ['path']) || tool.toolPreview || ''
+      return firstRawString(args, ['path']) || ''
     }
     if (name.includes('skill_view')) {
       return firstRawString(args, ['name']) || tool.toolPreview || ''
     }
-    if (name.includes('terminal')) {
-      return firstRawString(args, ['command']) || tool.toolPreview || ''
+    if (name.includes('terminal') || name === 'command') {
+      return firstRawString(args, ['command', 'cmd']) || ''
     }
     if (name.includes('web_search')) {
       return firstRawString(args, ['query']) || tool.toolPreview || ''
     }
     if (name.includes('file change') || name.includes('file_change')) {
-      return fileChangePreview(args) || tool.toolPreview || ''
+      return fileChangePreview(args) || ''
     }
     if (name.includes('search_files')) {
       return [firstRawString(args, ['pattern']), firstRawString(args, ['path'])]
@@ -157,11 +164,13 @@ function fullToolPreview(tool: ToolCallLike): string {
         || ''
     }
   }
-  return tool.toolPreview || ''
+  return usesArgsOnlyLivePreview(tool.toolName) ? '' : tool.toolPreview || ''
 }
 
 function toolCallPreview(tool: ToolCallLike): string {
-  return tool.toolPreview || fullToolPreview(tool)
+  const fullPreview = fullToolPreview(tool)
+  if (usesArgsOnlyLivePreview(tool.toolName)) return fullPreview
+  return tool.toolPreview || fullPreview
 }
 
 function hasToolDuration(tool: ToolCallLike): boolean {

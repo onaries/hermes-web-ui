@@ -259,6 +259,30 @@ describe('tool trace visibility', () => {
     expect(runningTool.text()).toContain('search_files')
   })
 
+  it('shows live Codex Command rows with the command args instead of stdout preview', () => {
+    const messages: Message[] = [
+      { id: 'user-1', role: 'user', content: 'check dataset', timestamp: 1 },
+      {
+        id: 'tool-command-done',
+        role: 'tool',
+        content: '',
+        timestamp: 2,
+        toolName: 'Command',
+        toolArgs: { command: 'ssh AICA md5sum content 01-InHARD.7z.*' },
+        toolPreview: 'X11 forwarding request failed on channel 8\nrchar: 11424926668 wchar: 1473473954',
+        toolStatus: 'done',
+      },
+    ]
+
+    const wrapper = mountLiveList(messages)
+    const commandTool = wrapper.find('.tool-call-item--done')
+
+    expect(commandTool.exists()).toBe(true)
+    expect(commandTool.text()).toContain('Command')
+    expect(commandTool.text()).toContain('ssh AICA md5sum content 01-InHARD.7z.*')
+    expect(commandTool.text()).not.toContain('X11 forwarding request failed')
+  })
+
   it('shows running terminal tools with the standard spinner only', () => {
     const messages: Message[] = [
       { id: 'user-1', role: 'user', content: 'run a long build', timestamp: Date.now() - 65_000 },
