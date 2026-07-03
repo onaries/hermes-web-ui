@@ -51,13 +51,50 @@ const TEXT_EXTENSIONS = new Set([
 const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'])
 const MEDIA_EXTENSIONS = new Set(['mp4', 'webm', 'mov', 'mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac'])
 
+function basenameOf(nameOrPath: string): string {
+  return nameOrPath.split('?')[0].split('#')[0].split(/[\\/]/).pop() || ''
+}
+
 function extensionOf(nameOrPath: string): string {
-  return nameOrPath.split('?')[0].split('#')[0].split('.').pop()?.toLowerCase() || ''
+  const basename = basenameOf(nameOrPath)
+  const dotIndex = basename.lastIndexOf('.')
+  if (dotIndex <= 0 || dotIndex === basename.length - 1) return ''
+  return basename.slice(dotIndex + 1).toLowerCase()
+}
+
+function hasMarkdownNameHint(nameOrPath: string): boolean {
+  const basename = basenameOf(nameOrPath).toLowerCase()
+  return /(^|[\s._-])(md|markdown|mdown|mkd)([\s._-]|$)/.test(basename)
+}
+
+function looksLikeMarkdownContent(content: string): boolean {
+  const sample = content.slice(0, 16000)
+  const signals = [
+    /^#{1,6}\s+\S/m,
+    /^[-*+]\s+\S/m,
+    /^\d+\.\s+\S/m,
+    /^>\s+\S/m,
+    /^```/m,
+    /^\|\s*[^\n]+\s*\|\s*$/m,
+    /\[[^\]\n]+\]\([^\)\n]+\)/,
+    /`[^`\n]+`/,
+  ]
+  return signals.some(pattern => pattern.test(sample))
+}
+
+function kindForContent(baseKind: ArtifactKind, content: string): ArtifactKind {
+  if (baseKind === 'markdown') return 'markdown'
+  if ((baseKind === 'file' || baseKind === 'text') && looksLikeMarkdownContent(content)) return 'markdown'
+  return baseKind
+}
+
+function kindForFetchedContent(item: ArtifactItem, content: string): ArtifactKind {
+  return kindForContent(item.kind, content)
 }
 
 function inferKind(nameOrPath: string): ArtifactKind {
   const ext = extensionOf(nameOrPath)
-  if (MARKDOWN_EXTENSIONS.has(ext)) return 'markdown'
+  if (MARKDOWN_EXTENSIONS.has(ext) || hasMarkdownNameHint(nameOrPath)) return 'markdown'
   if (TEXT_EXTENSIONS.has(ext)) return 'text'
   if (IMAGE_EXTENSIONS.has(ext)) return 'image'
   if (MEDIA_EXTENSIONS.has(ext)) return 'media'
@@ -120,7 +157,7 @@ export const useArtifactsStore = defineStore('artifacts', () => {
       name: options.name,
       path: options.path,
       content: options.content,
-      kind: options.kind || inferKind(options.name),
+      kind: options.kind || kindForContent(inferKind(options.name), options.content),
       status: 'ready',
       createdAt: Date.now(),
       source: 'manual',
@@ -193,7 +230,7 @@ export const useArtifactsStore = defineStore('artifacts', () => {
 
     try {
       const content = await fetchFileText(item.path, item.name, undefined, item.workspace)
-      return updateArtifact(item.id, { content, status: 'ready' }) || item
+      return updateArtifact(item.id, { content, kind: kindForFetchedContent(item, content), status: 'ready' }) || item
     } catch (err: any) {
       if (item.source === 'chat' && isMissingFileError(err)) {
         closeArtifact(item.id)

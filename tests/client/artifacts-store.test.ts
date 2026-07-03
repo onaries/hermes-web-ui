@@ -28,6 +28,28 @@ describe('artifacts store', () => {
     expect(store.selectedArtifact?.content).toContain('# Report')
   })
 
+  it('treats extensionless generated markdown-like files as markdown artifacts', async () => {
+    vi.mocked(fetchFileText).mockResolvedValue('## Purpose\n\n- Review the dataset\n- Document next steps')
+    const store = useArtifactsStore()
+
+    await store.openFileArtifact({ path: '/tmp/confluence-output', name: 'Confluence용 Markdown 문서' })
+
+    expect(fetchFileText).toHaveBeenCalledWith('/tmp/confluence-output', 'Confluence용 Markdown 문서', undefined, null)
+    expect(store.selectedArtifact?.kind).toBe('markdown')
+    expect(store.selectedArtifact?.status).toBe('ready')
+  })
+
+  it('keeps extensionless plain text artifacts as generic text-previewable files', async () => {
+    vi.mocked(fetchFileText).mockResolvedValue('plain output without markdown structure')
+    const store = useArtifactsStore()
+
+    await store.openFileArtifact({ path: '/tmp/plain-output', name: 'plain-output' })
+
+    expect(store.selectedArtifact?.kind).toBe('file')
+    expect(store.selectedArtifact?.status).toBe('ready')
+    expect(store.selectedArtifact?.content).toBe('plain output without markdown structure')
+  })
+
   it('tries to preview unclassified files as text artifacts', async () => {
     vi.mocked(fetchFileText).mockResolvedValue('zip-ish but readable')
     const store = useArtifactsStore()
