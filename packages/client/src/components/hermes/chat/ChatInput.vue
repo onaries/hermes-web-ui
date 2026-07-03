@@ -661,23 +661,48 @@ function fileMimeType(name: string) {
   return 'text/plain'
 }
 
+function currentFileMentionRange(): { start: number; end: number } | null {
+  const currentValue = inputText.value
+  if (
+    fileMentionStart.value >= 0
+    && fileMentionEnd.value >= fileMentionStart.value
+    && currentValue.slice(fileMentionStart.value, fileMentionEnd.value).startsWith('@')
+  ) {
+    return { start: fileMentionStart.value, end: fileMentionEnd.value }
+  }
+
+  const el = textareaRef.value
+  const cursorPos = document.activeElement === el ? el?.selectionStart ?? currentValue.length : currentValue.length
+  const beforeCursor = currentValue.slice(0, cursorPos)
+  const match = beforeCursor.match(/(^|\s)@([^@\s]*)$/)
+  if (!match) return null
+  return { start: beforeCursor.length - match[2].length - 1, end: cursorPos }
+}
+
+function removeCurrentFileMentionToken() {
+  const range = currentFileMentionRange()
+  if (!range) return inputText.value.length
+  const before = inputText.value.slice(0, range.start)
+  const after = inputText.value.slice(range.end)
+  inputText.value = `${before}${before.endsWith(' ') && after.startsWith(' ') ? after.slice(1) : after}`
+  saveDraftForActiveSession(inputText.value)
+  return Math.min(before.length, inputText.value.length)
+}
+
 async function selectFileMention(file: FileMentionCandidate) {
+  const cursorPosition = removeCurrentFileMentionToken()
+  fileMentionActive.value = false
+  nextTick(() => {
+    const el = textareaRef.value
+    if (!el) return
+    el.focus()
+    el.setSelectionRange(cursorPosition, cursorPosition)
+    scheduleTextareaResize()
+  })
+
   try {
     const result = await readFile(file.path, chatStore.activeSession?.profile || profilesStore.activeProfileName || undefined)
     addFile(new File([result.content], file.name, { type: fileMimeType(file.name) }))
-    const before = inputText.value.slice(0, fileMentionStart.value)
-    const after = inputText.value.slice(fileMentionEnd.value)
-    inputText.value = `${before}${before.endsWith(' ') && after.startsWith(' ') ? after.slice(1) : after}`
-    saveDraftForActiveSession(inputText.value)
-    fileMentionActive.value = false
-    nextTick(() => {
-      const el = textareaRef.value
-      if (!el) return
-      const pos = before.length
-      el.focus()
-      el.setSelectionRange(pos, pos)
-      scheduleTextareaResize()
-    })
   } catch (err: any) {
     message.error(err?.message || String(err))
   }

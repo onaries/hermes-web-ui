@@ -365,7 +365,10 @@ describe('ChatInput draft persistence', () => {
             { name: 'app.ts', path: '/repo/src/app.ts', isDir: false, size: 18, modTime: '' },
           ],
     }))
-    readFileMock.mockResolvedValue({ content: 'export const ok = true', path: '/repo/src/app.ts', size: 22 })
+    let resolveReadFile: (value: { content: string; path: string; size: number }) => void = () => {}
+    readFileMock.mockReturnValue(new Promise(resolve => {
+      resolveReadFile = resolve
+    }))
     const wrapper = mountForSession('session-file-mention', { workspace: '/repo', profile: 'work' })
     const textarea = wrapper.get('textarea')
 
@@ -377,14 +380,20 @@ describe('ChatInput draft persistence', () => {
     expect(wrapper.text()).toContain('app.ts')
 
     await wrapper.get('.file-mention-item').trigger('mousedown')
-    await flushPromises()
     await nextTick()
 
     expect(readFileMock).toHaveBeenCalledWith('/repo/src/app.ts', 'work')
+    expect((textarea.element as HTMLTextAreaElement).value).toBe('look ')
+    expect(wrapper.find('.file-mention-item').exists()).toBe(false)
+    expect(createObjectURL).not.toHaveBeenCalled()
+
+    resolveReadFile({ content: 'export const ok = true', path: '/repo/src/app.ts', size: 22 })
+    await flushPromises()
+    await nextTick()
+
     expect(createObjectURL).toHaveBeenCalled()
     expect(wrapper.find('.attachment-preview').exists()).toBe(true)
     expect(wrapper.text()).toContain('app.ts')
-    expect((textarea.element as HTMLTextAreaElement).value).toBe('look ')
   })
 
   it('opens the skill picker from /skill and inserts the selected skill command', async () => {
