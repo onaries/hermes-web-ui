@@ -164,6 +164,40 @@ describe('ChatInput draft persistence', () => {
     expect((wrapper.get('textarea').element as HTMLTextAreaElement).style.height).toBe('180px')
   })
 
+  it('lets multiline desktop input grow beyond the configured minimum height', async () => {
+    const wrapper = mountForSession('session-configured-multiline', {}, { chat_input_height: 48 })
+    const textarea = wrapper.get('textarea')
+    Object.defineProperty(textarea.element, 'scrollHeight', {
+      configurable: true,
+      value: 72,
+    })
+
+    await textarea.setValue('line one\nline two\nline three')
+    await nextTick()
+
+    expect((textarea.element as HTMLTextAreaElement).style.height).toBe('72px')
+  })
+
+  it('resets textarea scroll when configured height can fit the multiline content', async () => {
+    const wrapper = mountForSession('session-configured-scroll', {}, { chat_input_height: 96 })
+    const textarea = wrapper.get('textarea')
+    Object.defineProperty(textarea.element, 'scrollHeight', {
+      configurable: true,
+      value: 64,
+    })
+    Object.defineProperty(textarea.element, 'clientHeight', {
+      configurable: true,
+      value: 96,
+    })
+    ;(textarea.element as HTMLTextAreaElement).scrollTop = 24
+
+    await textarea.setValue('line one\nline two')
+    await nextTick()
+
+    expect((textarea.element as HTMLTextAreaElement).style.height).toBe('96px')
+    expect((textarea.element as HTMLTextAreaElement).scrollTop).toBe(0)
+  })
+
   it('keeps mobile chat input behavior even when a desktop height is configured', async () => {
     window.innerWidth = 640
     const wrapper = mountForSession('session-mobile', {}, { chat_input_height: 180 })

@@ -326,22 +326,37 @@ const TEXTAREA_AUTO_MAX_HEIGHT = 240
 const textareaHeight = ref<number | null>(null) // null = auto
 const autoTextareaHeight = ref(TEXTAREA_AUTO_MIN_HEIGHT)
 
+function effectiveTextareaHeight(contentHeight = autoTextareaHeight.value) {
+  const configuredHeight = textareaHeight.value
+  if (configuredHeight === null) return contentHeight
+  if (manualTextareaResize.value) return configuredHeight
+  return Math.max(configuredHeight, contentHeight)
+}
+
 const textareaStyle = computed(() => ({
-  height: `${textareaHeight.value ?? autoTextareaHeight.value}px`,
+  height: `${effectiveTextareaHeight()}px`,
 }))
+
+function keepTextareaScrollValid(el: HTMLTextAreaElement) {
+  if (el.scrollHeight <= el.clientHeight + 1) {
+    el.scrollTop = 0
+  }
+}
 
 function resizeTextareaToContent() {
   const el = textareaRef.value
-  if (!el || textareaHeight.value !== null) return
+  if (!el) return
   el.style.height = 'auto'
   const nextHeight = Math.min(
     Math.max(el.scrollHeight, TEXTAREA_AUTO_MIN_HEIGHT),
     TEXTAREA_AUTO_MAX_HEIGHT,
   )
   autoTextareaHeight.value = nextHeight
+  const visibleHeight = effectiveTextareaHeight(nextHeight)
   // Apply immediately too; the reactive style binding catches the next render,
   // but this makes native key/newline paths visible in the same frame.
-  el.style.height = `${nextHeight}px`
+  el.style.height = `${visibleHeight}px`
+  keepTextareaScrollValid(el)
 }
 
 function scheduleTextareaResize() {
@@ -375,12 +390,7 @@ function applyConfiguredTextareaHeight() {
   const textarea = textareaRef.value
   if (!textarea) return
 
-  if (textareaHeight.value === null) {
-    resizeTextareaToContent()
-    return
-  }
-
-  textarea.style.height = `${textareaHeight.value}px`
+  resizeTextareaToContent()
 }
 
 function startResize(e: MouseEvent) {
