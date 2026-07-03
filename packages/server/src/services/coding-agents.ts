@@ -525,9 +525,18 @@ async function resolveStoredProviderLaunchInput(
   input: CodingAgentLaunchInput & { sessionId: string },
   existingSession: HermesSessionRow | null,
 ): Promise<CodingAgentLaunchInput & { sessionId: string }> {
-  if (input.mode === 'global') return input
-
   const profile = String(input.profile || existingSession?.profile || 'default').trim() || 'default'
+  if (input.mode === 'global') {
+    const existingGlobalSession = storedCodingAgentMode(existingSession) === 'global'
+    return {
+      ...input,
+      profile,
+      provider: 'global',
+      model: String(input.model || (existingGlobalSession ? existingSession?.model : '') || '').trim(),
+      workspace: input.workspace || (existingGlobalSession ? existingSession?.workspace : undefined),
+    }
+  }
+
   const provider = String(input.provider || existingSession?.provider || '').trim()
   const model = String(input.model || existingSession?.model || '').trim()
   const workspace = input.workspace || existingSession?.workspace || undefined
@@ -1790,11 +1799,18 @@ export async function startCodingAgentRun(
   const agentSessionId = resolvedInput.agentSessionId || existingAgentSessionId || makeAgentSessionId()
   const requestedWorkspace = String(resolvedInput.workspace || existingSession?.workspace || '').trim()
   const workspaceMatches = String(existingSession?.workspace || '').trim() === requestedWorkspace
+  const resolvedGlobalModel = requestedMode === 'global' ? await resolveGlobalCodingAgentModel(id as CodingAgentId) : ''
+  const requestedProviderForResume = requestedMode === 'global'
+    ? 'global'
+    : String(resolvedInput.provider || '').trim()
+  const requestedModelForResume = requestedMode === 'global'
+    ? String(resolvedInput.model || resolvedGlobalModel || existingSession?.model || '').trim()
+    : String(resolvedInput.model || '').trim()
   const canResumeNativeSession = existingSession
     ? storedCodingAgentMode(existingSession) === requestedMode &&
       (existingSession.agent === (id === 'codex' ? 'codex' : 'claude') || !existingSession.agent) &&
-      String(existingSession.provider || '').trim() === String(resolvedInput.provider || '').trim() &&
-      String(existingSession.model || '').trim() === String(resolvedInput.model || '').trim() &&
+      String(existingSession.provider || '').trim() === requestedProviderForResume &&
+      String(existingSession.model || '').trim() === requestedModelForResume &&
       (id === 'codex' || workspaceMatches)
     : false
   const existingNativeSessionId = canResumeNativeSession ? existingSession?.agent_native_session_id || '' : ''

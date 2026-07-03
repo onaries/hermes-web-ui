@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from 'fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -276,6 +276,42 @@ describe('coding agent resumed session config', () => {
     expect(updateSessionMock).toHaveBeenCalledWith('session-1', expect.objectContaining({
       agent_native_session_id: 'codex-scoped-thread',
       workspace: '/tmp/new-workspace',
+    }))
+  })
+
+  it('resumes a stored global Codex native session when continuation omits provider and model', async () => {
+    const home = makeHome()
+    const codexConfigDir = join(home, 'global-home', '.codex')
+    mkdirSync(codexConfigDir, { recursive: true })
+    writeFileSync(join(codexConfigDir, 'config.toml'), 'model = "gpt-5.5"\n')
+    getSessionMock.mockReturnValue({
+      id: 'session-1',
+      profile: 'default',
+      source: 'coding_agent',
+      agent: 'codex',
+      agent_mode: 'global',
+      agent_session_id: 'agent-session-1',
+      agent_native_session_id: 'codex-global-thread',
+      provider: 'global',
+      model: 'gpt-5.5',
+      workspace: '/tmp/global-workspace',
+    })
+
+    const { startCodingAgentRun } = await import('../../packages/server/src/services/coding-agents')
+    await startCodingAgentRun('codex', { sessionId: 'session-1', mode: 'global' })
+
+    expect(startRunMock).toHaveBeenCalledWith(expect.objectContaining({
+      agentNativeSessionId: 'codex-global-thread',
+      nativeResume: true,
+      provider: 'global',
+      model: 'gpt-5.5',
+      workspaceDir: '/tmp/global-workspace',
+    }))
+    expect(updateSessionMock).toHaveBeenCalledWith('session-1', expect.objectContaining({
+      agent_native_session_id: 'codex-global-thread',
+      provider: 'global',
+      model: 'gpt-5.5',
+      workspace: '/tmp/global-workspace',
     }))
   })
 
