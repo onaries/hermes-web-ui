@@ -7,6 +7,7 @@ import { useSettingsStore } from '@/stores/hermes/settings'
 import { fetchContextLength } from '@/api/hermes/sessions'
 import { setModelContext } from '@/api/hermes/model-context'
 import { fetchSkills, type SkillCategory, type SkillInfo } from '@/api/hermes/skills'
+import { listFiles, readFile, type FileEntry } from '@/api/hermes/files'
 import { NButton, NTooltip, NModal, NInputNumber, NPopselect, NDropdown, useMessage, type DropdownOption } from 'naive-ui'
 import { computed, ref, nextTick, onMounted, onUnmounted, watch, h } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -233,6 +234,16 @@ const bridgeCommands = computed<SlashCommandOption[]>(() =>
 const slashActive = ref(false)
 const slashQuery = ref('')
 const slashActiveIndex = ref(0)
+type FileMentionCandidate = FileEntry & { relativeLabel: string }
+const fileMentionDropdownRef = ref<HTMLDivElement>()
+const fileMentionActive = ref(false)
+const fileMentionQuery = ref('')
+const fileMentionStart = ref(-1)
+const fileMentionEnd = ref(-1)
+const fileMentionActiveIndex = ref(0)
+const fileMentionCandidates = ref<FileMentionCandidate[]>([])
+let fileMentionLoadedKey = ''
+let fileMentionLoadRequest: Promise<void> | null = null
 const skillCategories = ref<SkillCategory[]>([])
 const showSkillPicker = ref(false)
 const skillSearch = ref('')
@@ -273,6 +284,15 @@ const filteredBridgeCommands = computed(() => {
     const description = command.description.toLowerCase()
     return name.startsWith(query) || insertText?.startsWith(query) || description.includes(query)
   })
+})
+const filteredFileMentions = computed(() => {
+  const query = fileMentionQuery.value.trim().toLowerCase()
+  const files = fileMentionCandidates.value
+  if (!query) return files.slice(0, 8)
+  return files.filter(file =>
+    file.name.toLowerCase().includes(query)
+    || file.relativeLabel.toLowerCase().includes(query),
+  ).slice(0, 8)
 })
 const filteredSkillPickerItems = computed(() => {
   const query = skillSearch.value.trim().toLowerCase()
@@ -318,6 +338,56 @@ async function loadSkills() {
     }
   })()
   return skillsLoadRequest
+}
+
+function activeWorkspaceRoot() {
+  return chatStore.activeSession?.workspace || ''
+}
+
+function fileMentionKey() {
+  return `${chatStore.activeSession?.profile || profilesStore.activeProfileName || 'default'}|${activeWorkspaceRoot()}`
+}
+
+function mentionLabel(path: string, root: string) {
+  if (!root) return path
+  const prefix = root.replace(/\/$/, '') + '/'
+  return path.startsWith(prefix) ? path.slice(prefix.length) : path
+}
+
+async function loadFileMentionCandidates() {
+  const key = fileMentionKey()
+  if (fileMentionLoadedKey === key || fileMentionLoadRequest) return fileMentionLoadRequest
+  const root = activeWorkspaceRoot()
+  const profile = chatStore.activeSession?.profile || profilesStore.activeProfileName || undefined
+  // ponytail: client-side capped scan; add server-side search when huge repos make this slow.
+  fileMentionLoadRequest = (async () => {
+    const files: FileMentionCandidate[] = []
+    const queue: Array<{ path: string; depth: number }> = [{ path: root, depth: 0 }]
+    const skipDirs = new Set(['.git', 'node_modules', 'dist', 'build', '.next', '.nuxt', 'coverage'])
+    while (queue.length && files.length < 200) {
+      const current = queue.shift()!
+      let entries: FileEntry[] = []
+      try {
+        entries = (await listFiles(current.path, profile)).entries || []
+      } catch {
+        continue
+      }
+      for (const entry of entries) {
+        if (entry.isDir) {
+          if (current.depth < 4 && !skipDirs.has(entry.name)) queue.push({ path: entry.path, depth: current.depth + 1 })
+          continue
+        }
+        files.push({ ...entry, relativeLabel: mentionLabel(entry.path, root) })
+        if (files.length >= 200) break
+      }
+    }
+    if (fileMentionKey() !== key) return
+    fileMentionCandidates.value = files
+    fileMentionLoadedKey = key
+  })().finally(() => {
+    fileMentionLoadRequest = null
+  })
+  return fileMentionLoadRequest
 }
 
 // 自定义高度拖拽
@@ -539,6 +609,14 @@ watch(
     skillCategories.value = []
   },
 )
+watch(
+  () => [chatStore.activeSession?.profile, profilesStore.activeProfileName, chatStore.activeSession?.workspace],
+  () => {
+    fileMentionLoadedKey = ''
+    fileMentionCandidates.value = []
+    fileMentionActive.value = false
+  },
+)
 
 const canSend = computed(() => inputText.value.trim().length > 0 || attachments.value.length > 0)
 const sendButtonIsStop = computed(() => chatStore.isStreaming && !canSend.value)
@@ -549,6 +627,60 @@ function scrollCommandIntoView() {
     const active = commandDropdownRef.value.querySelector('.active') as HTMLElement | null
     active?.scrollIntoView({ block: 'nearest', behavior: 'instant' })
   })
+}
+
+function scrollFileMentionIntoView() {
+  nextTick(() => {
+    if (!fileMentionDropdownRef.value) return
+    const active = fileMentionDropdownRef.value.querySelector('.active') as HTMLElement | null
+    active?.scrollIntoView({ block: 'nearest', behavior: 'instant' })
+  })
+}
+
+function updateFileMentionState() {
+  const el = textareaRef.value
+  if (!el) return
+  const cursorPos = document.activeElement === el ? el.selectionStart : inputText.value.length
+  const beforeCursor = inputText.value.slice(0, cursorPos)
+  const match = beforeCursor.match(/(^|\s)@([^@\s]*)$/)
+  if (!match) {
+    fileMentionActive.value = false
+    return
+  }
+  fileMentionStart.value = beforeCursor.length - match[2].length - 1
+  fileMentionEnd.value = cursorPos
+  fileMentionQuery.value = match[2]
+  fileMentionActiveIndex.value = 0
+  fileMentionActive.value = true
+  void loadFileMentionCandidates()
+}
+
+function fileMimeType(name: string) {
+  if (/\.(md|markdown)$/i.test(name)) return 'text/markdown'
+  if (/\.json$/i.test(name)) return 'application/json'
+  return 'text/plain'
+}
+
+async function selectFileMention(file: FileMentionCandidate) {
+  try {
+    const result = await readFile(file.path, chatStore.activeSession?.profile || profilesStore.activeProfileName || undefined)
+    addFile(new File([result.content], file.name, { type: fileMimeType(file.name) }))
+    const before = inputText.value.slice(0, fileMentionStart.value)
+    const after = inputText.value.slice(fileMentionEnd.value)
+    inputText.value = `${before}${before.endsWith(' ') && after.startsWith(' ') ? after.slice(1) : after}`
+    saveDraftForActiveSession(inputText.value)
+    fileMentionActive.value = false
+    nextTick(() => {
+      const el = textareaRef.value
+      if (!el) return
+      const pos = before.length
+      el.focus()
+      el.setSelectionRange(pos, pos)
+      scheduleTextareaResize()
+    })
+  } catch (err: any) {
+    message.error(err?.message || String(err))
+  }
 }
 
 function updateSlashState() {
@@ -953,6 +1085,7 @@ function handleCompositionEnd() {
   requestAnimationFrame(() => {
     isComposing.value = false
     updateSlashState()
+    updateFileMentionState()
   })
 }
 
@@ -961,6 +1094,31 @@ function isImeEnter(e: KeyboardEvent): boolean {
 }
 
 function handleKeydown(e: KeyboardEvent) {
+  if (fileMentionActive.value && filteredFileMentions.value.length > 0) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      fileMentionActiveIndex.value = (fileMentionActiveIndex.value + 1) % filteredFileMentions.value.length
+      scrollFileMentionIntoView()
+      return
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      fileMentionActiveIndex.value = (fileMentionActiveIndex.value - 1 + filteredFileMentions.value.length) % filteredFileMentions.value.length
+      scrollFileMentionIntoView()
+      return
+    }
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault()
+      void selectFileMention(filteredFileMentions.value[fileMentionActiveIndex.value])
+      return
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      fileMentionActive.value = false
+      return
+    }
+  }
+
   if (slashActive.value && filteredBridgeCommands.value.length > 0) {
     if (e.key === 'ArrowDown') {
       e.preventDefault()
@@ -1000,7 +1158,10 @@ function handleKeydown(e: KeyboardEvent) {
 }
 
 function handleInput() {
-  if (!isComposing.value) updateSlashState()
+  if (!isComposing.value) {
+    updateSlashState()
+    updateFileMentionState()
+  }
   scheduleTextareaResize()
 }
 
@@ -1009,10 +1170,12 @@ function handleCommandHover(index: number) {
 }
 
 function onDocumentMousedown(e: MouseEvent) {
-  if (!slashActive.value) return
   const target = e.target as HTMLElement
-  if (!target.closest('.slash-command-dropdown') && !target.closest('.input-wrapper')) {
+  if (slashActive.value && !target.closest('.slash-command-dropdown') && !target.closest('.input-wrapper')) {
     slashActive.value = false
+  }
+  if (fileMentionActive.value && !target.closest('.file-mention-dropdown') && !target.closest('.input-wrapper')) {
+    fileMentionActive.value = false
   }
 }
 
@@ -1298,6 +1461,26 @@ function isImage(type: string): boolean {
             <span class="slash-command-name">/{{ command.name }}</span>
             <span v-if="command.args" class="slash-command-args">{{ command.args }}</span>
             <span class="slash-command-desc">{{ command.description }}</span>
+          </div>
+        </div>
+      </Transition>
+      <Transition name="dropdown-fade">
+        <div
+          v-if="fileMentionActive && filteredFileMentions.length > 0"
+          ref="fileMentionDropdownRef"
+          class="slash-command-dropdown file-mention-dropdown"
+        >
+          <div
+            v-for="(file, i) in filteredFileMentions"
+            :key="file.path"
+            class="slash-command-item file-mention-item"
+            :class="{ active: i === fileMentionActiveIndex }"
+            @mousedown.prevent="selectFileMention(file)"
+            @mouseenter="fileMentionActiveIndex = i"
+          >
+            <FileGlyph :name="file.name" size="sm" />
+            <span class="slash-command-name file-mention-name">{{ file.name }}</span>
+            <span class="slash-command-desc">{{ file.relativeLabel }}</span>
           </div>
         </div>
       </Transition>

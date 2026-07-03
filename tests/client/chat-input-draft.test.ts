@@ -8,6 +8,8 @@ import { useSettingsStore } from '@/stores/hermes/settings'
 import ChatInput from '@/components/hermes/chat/ChatInput.vue'
 
 const fetchSkillsMock = vi.hoisted(() => vi.fn())
+const listFilesMock = vi.hoisted(() => vi.fn())
+const readFileMock = vi.hoisted(() => vi.fn())
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: (key: string) => key }),
@@ -54,6 +56,11 @@ vi.mock('@/api/hermes/skills', () => ({
   fetchSkills: fetchSkillsMock,
 }))
 
+vi.mock('@/api/hermes/files', () => ({
+  listFiles: listFilesMock,
+  readFile: readFileMock,
+}))
+
 vi.mock('@/composables/useToolTraceVisibility', () => ({
   useToolTraceVisibility: () => ({ toolTraceVisible: { value: true }, toggleToolTraceVisible: vi.fn() }),
 }))
@@ -88,6 +95,9 @@ describe('ChatInput draft persistence', () => {
     window.innerWidth = 1024
     fetchSkillsMock.mockReset()
     fetchSkillsMock.mockResolvedValue({ categories: [], archived: [] })
+    listFilesMock.mockReset()
+    listFilesMock.mockResolvedValue({ entries: [], path: '' })
+    readFileMock.mockReset()
   })
 
   it('restores unsent text for the active session after the chat view is remounted', async () => {
@@ -339,6 +349,42 @@ describe('ChatInput draft persistence', () => {
     expect(wrapper.text()).toContain('notes.txt')
 
     wrapper.unmount()
+  })
+
+  it('attaches a workspace file from @ mention autocomplete', async () => {
+    const createObjectURL = vi.fn(() => 'blob:mention-test')
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectURL })
+    listFilesMock.mockImplementation(async (path: string) => ({
+      path,
+      entries: path === '/repo'
+        ? [
+            { name: 'src', path: '/repo/src', isDir: true, size: 0, modTime: '' },
+            { name: 'README.md', path: '/repo/README.md', isDir: false, size: 12, modTime: '' },
+          ]
+        : [
+            { name: 'app.ts', path: '/repo/src/app.ts', isDir: false, size: 18, modTime: '' },
+          ],
+    }))
+    readFileMock.mockResolvedValue({ content: 'export const ok = true', path: '/repo/src/app.ts', size: 22 })
+    const wrapper = mountForSession('session-file-mention', { workspace: '/repo', profile: 'work' })
+    const textarea = wrapper.get('textarea')
+
+    await textarea.setValue('look @app')
+    await flushPromises()
+    await nextTick()
+
+    expect(listFilesMock).toHaveBeenCalledWith('/repo', 'work')
+    expect(wrapper.text()).toContain('app.ts')
+
+    await wrapper.get('.file-mention-item').trigger('mousedown')
+    await flushPromises()
+    await nextTick()
+
+    expect(readFileMock).toHaveBeenCalledWith('/repo/src/app.ts', 'work')
+    expect(createObjectURL).toHaveBeenCalled()
+    expect(wrapper.find('.attachment-preview').exists()).toBe(true)
+    expect(wrapper.text()).toContain('app.ts')
+    expect((textarea.element as HTMLTextAreaElement).value).toBe('look ')
   })
 
   it('opens the skill picker from /skill and inserts the selected skill command', async () => {
