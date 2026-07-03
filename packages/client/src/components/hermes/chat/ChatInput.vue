@@ -1893,7 +1893,7 @@ function isImage(type: string): boolean {
 
 .input-textarea {
   display: block;
-  flex: 1;
+  flex: 0 0 auto;
   width: 100%;
   background: none;
   border: none;
@@ -1933,6 +1933,7 @@ function isImage(type: string): boolean {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  margin-top: auto;
   min-height: 32px;
 }
 

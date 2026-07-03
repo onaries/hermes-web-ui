@@ -1185,7 +1185,6 @@ async function isWorkspaceListPathAllowed(fullPath: string, basePath: string, st
 }
 
 async function isSafeWorkspaceFolderEntry(entry: any, fullPath: string, basePath: string, statFn: any): Promise<boolean> {
-  if (entry.name.startsWith('.')) return false
   if (!entry.isDirectory() && !(typeof entry.isSymbolicLink === 'function' && entry.isSymbolicLink())) {
     return false
   }
