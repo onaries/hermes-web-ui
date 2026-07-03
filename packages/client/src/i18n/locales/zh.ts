@@ -1,7 +1,7 @@
 export default {
   // 登录
   login: {
-    title: 'Hermes Web UI',
+    title: 'Hermes Studio',
     description: '输入用户名和密码以继续。',
     placeholder: '访问令牌',
     submit: '登录',
@@ -18,6 +18,7 @@ export default {
     tooManyAttempts: '登录失败次数过多，请稍后重试',
     lockResetHint: '如果这是你的服务器，可以执行以下命令清除登录锁定：',
     defaultLoginResetHint: '如需重置默认 admin 密码，可以执行：',
+    desktopLockResetHint: '登录失败次数过多。请打开系统托盘菜单，选择“重置登录”来重置密码。',
     sessionExpired: '登录已过期，请重新登录',
     accessDenied: '你没有权限访问该资源',
     passwordMismatch: '两次密码不一致',
@@ -197,6 +198,7 @@ export default {
     logs: '日志',
     usage: '用量',
     performance: '性能监控',
+    journey: '学习轨迹',
     skillsUsage: '技能用量',
     channels: '频道',
     gateways: '网关',
@@ -394,6 +396,34 @@ export default {
     noWorkers: '暂无 Worker',
     sessionsByProfile: '按 Profile 统计会话',
     noActiveSessions: '暂无活跃会话',
+  },
+
+  journey: {
+    title: '学习轨迹',
+    play: '播放学习轨迹',
+    pause: '暂停学习轨迹',
+    refresh: '刷新',
+    loadFailed: '学习轨迹加载失败',
+    nodes: '节点',
+    edges: '关系',
+    skills: '技能',
+    memories: '记忆',
+    clusters: '分组',
+    profile: 'Profile',
+    source: '来源',
+    learnedSkills: '已学习技能',
+    memorySkillEdges: '记忆关联',
+    allKinds: '全部类型',
+    allCategories: '全部分组',
+    searchPlaceholder: '搜索节点',
+    noClusters: '暂无分组',
+    noNodes: '暂无学习轨迹节点',
+    noCategory: '未分组',
+    category: '分组',
+    useCount: '使用次数',
+    createdBy: '创建来源',
+    timestamp: '时间',
+    pinned: '已固定',
   },
 
   // 抽屉
@@ -2551,6 +2581,7 @@ export default {
 
   // 更新日志
   changelog: {
+    new_0_6_25_1: '修复 Hermes Agent 0.18.0 下 execute_code 因 Agent Bridge 审批记忆 wrapper 未转发新的 has_host_access 参数而失败的问题',
     new_0_6_24_1: '本版本汇总 0.6.23 之后合并的 PR，重点改进聊天输入区、工作区可见性、插件管理、默认模型和工作区 diff 查看体验',
     new_0_6_24_2: '单聊和群聊输入区更新为整合式工具栏，模型选择更紧凑，输入设置集中管理，上下文用量更清晰，移动端样式更稳，并恢复单聊输入框手动拖拽高度',
     new_0_6_24_3: '工作区运行变更会以持久的聊天 diff 卡片展示，右侧抽屉支持查看 diff 和编辑文件，恢复会话后仍能保留，并优化了移动端查看体验',

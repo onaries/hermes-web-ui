@@ -1,7 +1,7 @@
 export default {
   // Login
   login: {
-    title: 'Hermes Web UI',
+    title: 'Hermes Studio',
     description: 'Introduce tu nombre de usuario y contrasena para continuar.',
     placeholder: 'Token de acceso',
     submit: 'Iniciar sesion',
@@ -18,6 +18,7 @@ export default {
     tooManyAttempts: 'Demasiados intentos fallidos, por favor intente mas tarde',
     lockResetHint: 'Si este es su servidor, borre el bloqueo de inicio de sesion con:',
     defaultLoginResetHint: 'Para restablecer la contrasena admin predeterminada, ejecute:',
+    desktopLockResetHint: 'Too many failed login attempts. Open the system tray menu and choose Reset Login to reset the password.',
     sessionExpired: 'La sesion expiro. Inicia sesion de nuevo.',
     accessDenied: 'No tienes permiso para acceder a este recurso.',
     passwordMismatch: 'Las contrasenas no coinciden',
@@ -195,6 +196,7 @@ export default {
     logs: 'Registros',
     usage: 'Uso',
     performance: 'Rendimiento',
+    journey: 'Trayectoria',
     skillsUsage: 'Uso de habilidades',
     channels: 'Canales',
     terminal: 'Terminal',
@@ -394,6 +396,34 @@ export default {
     noWorkers: 'Sin Workers',
     sessionsByProfile: 'Sesiones por Profile',
     noActiveSessions: 'No hay sesiones activas',
+  },
+
+  journey: {
+    title: 'Trayectoria de aprendizaje',
+    play: 'Reproducir trayectoria',
+    pause: 'Pausar trayectoria',
+    refresh: 'Actualizar',
+    loadFailed: 'No se pudo cargar la trayectoria',
+    nodes: 'Nodos',
+    edges: 'Conexiones',
+    skills: 'Habilidades',
+    memories: 'Memorias',
+    clusters: 'Grupos',
+    profile: 'Profile',
+    source: 'Origen',
+    learnedSkills: 'Habilidades aprendidas',
+    memorySkillEdges: 'Enlaces de memoria',
+    allKinds: 'Todos los tipos',
+    allCategories: 'Todas las categorias',
+    searchPlaceholder: 'Buscar nodos',
+    noClusters: 'Sin grupos',
+    noNodes: 'Sin nodos de trayectoria',
+    noCategory: 'Sin categoria',
+    category: 'Categoria',
+    useCount: 'Usos',
+    createdBy: 'Creado por',
+    timestamp: 'Hora',
+    pinned: 'Fijado',
   },
 
   // Drawer
@@ -2125,6 +2155,7 @@ jobTriggered: 'Job ejecutado',
 
   // Registro de cambios
   changelog: {
+    new_0_6_25_1: 'Corrige fallos de execute_code con Hermes Agent 0.18.0 al reenviar el nuevo parametro has_host_access desde el wrapper de memoria de aprobaciones de Agent Bridge',
     new_0_6_24_1: 'Esta version cubre los PR fusionados despues de 0.6.23 y mejora la entrada de chat, la visibilidad de workspaces, la gestion de plugins, los modelos predeterminados y la revision de diffs',
     new_0_6_24_2: 'Las entradas de chat individual y grupal usan una barra integrada, controles de modelo compactos, ajustes agrupados, uso de contexto mas claro, mejor vista movil y restaura el redimensionado manual del chat individual',
     new_0_6_24_3: 'Los cambios de workspace run aparecen como tarjetas diff persistentes con un panel derecho para ver diffs y editar archivos, se restauran tras reanudar la sesion y se ajustan mejor en movil',

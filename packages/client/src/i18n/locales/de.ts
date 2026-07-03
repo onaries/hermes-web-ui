@@ -1,7 +1,7 @@
 export default {
   // Login
   login: {
-    title: 'Hermes Web UI',
+    title: 'Hermes Studio',
     description: 'Geben Sie Benutzername und Passwort ein, um fortzufahren.',
     placeholder: 'Zugangs-Token',
     submit: 'Anmelden',
@@ -18,6 +18,7 @@ export default {
     tooManyAttempts: 'Zu viele fehlgeschlagene Versuche, bitte versuchen Sie es spater erneut',
     lockResetHint: 'Wenn dies Ihr Server ist, heben Sie die Login-Sperre auf mit:',
     defaultLoginResetHint: 'Um das Standard-Admin-Passwort zuruckzusetzen, fuhren Sie aus:',
+    desktopLockResetHint: 'Too many failed login attempts. Open the system tray menu and choose Reset Login to reset the password.',
     sessionExpired: 'Die Anmeldung ist abgelaufen. Bitte melden Sie sich erneut an.',
     accessDenied: 'Sie haben keine Berechtigung fur diese Ressource.',
     passwordMismatch: 'Passworter stimmen nicht uberein',
@@ -195,6 +196,7 @@ export default {
     logs: 'Protokolle',
     usage: 'Nutzung',
     performance: 'Leistung',
+    journey: 'Lernverlauf',
     skillsUsage: 'Skill-Nutzung',
     channels: 'Kanale',
     terminal: 'Konsole',
@@ -394,6 +396,34 @@ export default {
     noWorkers: 'Keine Workers',
     sessionsByProfile: 'Sitzungen nach Profile',
     noActiveSessions: 'Keine aktiven Sitzungen',
+  },
+
+  journey: {
+    title: 'Lernverlauf',
+    play: 'Lernverlauf abspielen',
+    pause: 'Lernverlauf pausieren',
+    refresh: 'Aktualisieren',
+    loadFailed: 'Lernverlauf konnte nicht geladen werden',
+    nodes: 'Knoten',
+    edges: 'Verbindungen',
+    skills: 'Skills',
+    memories: 'Erinnerungen',
+    clusters: 'Cluster',
+    profile: 'Profile',
+    source: 'Quelle',
+    learnedSkills: 'Gelernte Skills',
+    memorySkillEdges: 'Erinnerungslinks',
+    allKinds: 'Alle Typen',
+    allCategories: 'Alle Kategorien',
+    searchPlaceholder: 'Knoten suchen',
+    noClusters: 'Keine Cluster',
+    noNodes: 'Keine Lernverlauf-Knoten',
+    noCategory: 'Nicht kategorisiert',
+    category: 'Kategorie',
+    useCount: 'Nutzung',
+    createdBy: 'Erstellt von',
+    timestamp: 'Zeit',
+    pinned: 'Angeheftet',
   },
 
   // Drawer
@@ -2115,6 +2145,7 @@ jobTriggered: 'Job ausgelost',
 
   // Anderungsprotokoll
   changelog: {
+    new_0_6_25_1: 'Behebt execute_code-Fehler mit Hermes Agent 0.18.0, indem der neue Parameter has_host_access durch den Agent-Bridge-Approval-Memory-Wrapper weitergereicht wird',
     new_0_6_24_1: 'Diese Version umfasst die nach 0.6.23 gemergten PRs und verbessert Chat-Eingabe, Workspace-Sichtbarkeit, Plugin-Verwaltung, Standardmodelle und Workspace-Diff-Ansicht',
     new_0_6_24_2: 'Einzel- und Gruppenchat-Eingaben nutzen eine integrierte Toolbar, kompakte Modellsteuerung, gebuendelte Eingabeeinstellungen, klarere Context-Nutzung, stabileres Mobile Chrome und wiederhergestelltes manuelles Resize im Einzelchat',
     new_0_6_24_3: 'Workspace-Run-Aenderungen erscheinen als dauerhafte Chat-Diff-Karten mit rechter Diff-/Editor-Schublade, werden nach Session Resume wiederhergestellt und sind fuer mobile Ansicht angepasst',

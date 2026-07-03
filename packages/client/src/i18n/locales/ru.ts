@@ -1,7 +1,7 @@
 export default {
 
   login: {
-    title: 'Hermes Web UI',
+    title: 'Hermes Studio',
     description: 'Введите имя пользователя и пароль для продолжения.',
     placeholder: 'Токен доступа',
     submit: 'Войти',
@@ -16,6 +16,7 @@ export default {
     credentialsRequired: 'Введите имя пользователя и пароль',
     invalidCredentials: 'Неверное имя пользователя или пароль',
     tooManyAttempts: 'Слишком много неудачных попыток входа, повторите попытку позже',
+    desktopLockResetHint: 'Too many failed login attempts. Open the system tray menu and choose Reset Login to reset the password.',
     sessionExpired: 'Сеанс истёк, войдите снова',
     accessDenied: 'У вас нет прав доступа к этому ресурсу',
     passwordMismatch: 'Пароли не совпадают',
@@ -122,6 +123,7 @@ export default {
     logs: 'Логи',
     usage: 'Использование',
     performance: 'Мониторинг производительности',
+    journey: 'Путь обучения',
     skillsUsage: 'Использование навыков',
     channels: 'Каналы',
     gateways: 'Шлюзы',
@@ -321,6 +323,34 @@ export default {
     noWorkers: 'Нет воркеров',
     sessionsByProfile: 'Сеансы по профилям',
     noActiveSessions: 'Нет активных сеансов',
+  },
+
+  journey: {
+    title: 'Путь обучения',
+    play: 'Воспроизвести путь',
+    pause: 'Приостановить путь',
+    refresh: 'Обновить',
+    loadFailed: 'Не удалось загрузить путь обучения',
+    nodes: 'Узлы',
+    edges: 'Связи',
+    skills: 'Навыки',
+    memories: 'Воспоминания',
+    clusters: 'Кластеры',
+    profile: 'Профиль',
+    source: 'Источник',
+    learnedSkills: 'Изученные навыки',
+    memorySkillEdges: 'Связи памяти',
+    allKinds: 'Все типы',
+    allCategories: 'Все категории',
+    searchPlaceholder: 'Поиск узлов',
+    noClusters: 'Кластеров нет',
+    noNodes: 'Узлов пути нет',
+    noCategory: 'Без категории',
+    category: 'Категория',
+    useCount: 'Использований',
+    createdBy: 'Создано',
+    timestamp: 'Время',
+    pinned: 'Закреплено',
   },
 
 
@@ -2285,6 +2315,7 @@ export default {
   },
 
   changelog: {
+    new_0_6_25_1: 'Исправлен сбой execute_code с Hermes Agent 0.18.0: Agent Bridge теперь передает новый параметр has_host_access через wrapper памяти подтверждений',
     new_0_6_24_1: 'Этот релиз включает PR после 0.6.23 и улучшает ввод чата, видимость workspace, управление plugins, модели по умолчанию и просмотр workspace diff',
     new_0_6_24_2: 'Поля ввода одиночного и группового чата получили встроенную панель, компактные элементы модели, сгруппированные настройки ввода, более понятное использование context, мобильную полировку и восстановленный ручной resize одиночного чата',
     new_0_6_24_3: 'Изменения workspace run теперь показываются как устойчивые chat diff cards с правым drawer для просмотра diff и редактирования файлов, восстанавливаются после resume session и лучше работают на mobile',

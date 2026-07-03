@@ -1,7 +1,7 @@
 export default {
   // 登入
   login: {
-    title: 'Hermes Web UI',
+    title: 'Hermes Studio',
     description: '輸入使用者名稱和密碼以繼續。',
     placeholder: '存取權杖',
     submit: '登入',
@@ -18,6 +18,7 @@ export default {
     tooManyAttempts: '登入失敗次數過多，請稍後再試',
     lockResetHint: '如果這是你的伺服器，可以執行以下命令清除登入鎖定：',
     defaultLoginResetHint: '如需重置預設 admin 密碼，可以執行：',
+    desktopLockResetHint: '登入失敗次數過多。請開啟系統托盤選單，選擇「重置登入」來重置密碼。',
     sessionExpired: '登入已過期，請重新登入',
     accessDenied: '你沒有權限存取此資源',
     passwordMismatch: '兩次密碼不一致',
@@ -197,6 +198,7 @@ export default {
     logs: '日誌',
     usage: '用量',
     performance: '效能監控',
+    journey: '學習軌跡',
     skillsUsage: '技能用量',
     channels: '頻道',
     gateways: '閘道',
@@ -394,6 +396,34 @@ export default {
     noWorkers: '暫無 Worker',
     sessionsByProfile: '按 Profile 統計會話',
     noActiveSessions: '暫無活躍會話',
+  },
+
+  journey: {
+    title: '學習軌跡',
+    play: '播放學習軌跡',
+    pause: '暫停學習軌跡',
+    refresh: '重新整理',
+    loadFailed: '學習軌跡載入失敗',
+    nodes: '節點',
+    edges: '關係',
+    skills: '技能',
+    memories: '記憶',
+    clusters: '分組',
+    profile: 'Profile',
+    source: '來源',
+    learnedSkills: '已學習技能',
+    memorySkillEdges: '記憶關聯',
+    allKinds: '全部類型',
+    allCategories: '全部分組',
+    searchPlaceholder: '搜尋節點',
+    noClusters: '暫無分組',
+    noNodes: '暫無學習軌跡節點',
+    noCategory: '未分組',
+    category: '分組',
+    useCount: '使用次數',
+    createdBy: '建立來源',
+    timestamp: '時間',
+    pinned: '已固定',
   },
 
   // 抽屜
@@ -2541,6 +2571,7 @@ export default {
 
   // 更新日誌
   changelog: {
+    new_0_6_25_1: '修復 Hermes Agent 0.18.0 下 execute_code 因 Agent Bridge 審批記憶 wrapper 未轉發新的 has_host_access 參數而失敗的問題',
     new_0_6_24_1: '本版本彙整 0.6.23 之後合併的 PR，重點改進聊天輸入區、工作區可見性、外掛管理、預設模型和工作區 diff 查看體驗',
     new_0_6_24_2: '單聊和群聊輸入區更新為整合式工具列，模型選擇更精簡，輸入設定集中管理，上下文用量更清楚，行動端樣式更穩，並恢復單聊輸入框手動拖曳高度',
     new_0_6_24_3: '工作區執行變更會以持久的聊天 diff 卡片展示，右側抽屜支援查看 diff 和編輯檔案，恢復會話後仍能保留，並優化行動端查看體驗',

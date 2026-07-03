@@ -1,7 +1,7 @@
 export default {
   // 로그인
   login: {
-    title: 'Hermes Web UI',
+    title: 'Hermes Studio',
     description: '계속하려면 사용자 이름과 비밀번호를 입력하세요.',
     placeholder: '액세스 토큰',
     submit: '로그인',
@@ -18,6 +18,7 @@ export default {
     tooManyAttempts: '로그인 시도 횟수가 너무 많습니다. 잠시 후 다시 시도해 주세요',
     lockResetHint: '본인 서버라면 다음 명령으로 로그인 잠금을 해제할 수 있습니다:',
     defaultLoginResetHint: '기본 admin 비밀번호를 재설정하려면 다음을 실행하세요:',
+    desktopLockResetHint: 'Too many failed login attempts. Open the system tray menu and choose Reset Login to reset the password.',
     sessionExpired: '로그인이 만료되었습니다. 다시 로그인해 주세요.',
     accessDenied: '이 리소스에 접근할 권한이 없습니다.',
     passwordMismatch: '비밀번호가 일치하지 않습니다',
@@ -195,6 +196,7 @@ export default {
     logs: '로그',
     usage: '사용량',
     performance: '성능 모니터링',
+    journey: '학습 경로',
     skillsUsage: '스킬 사용량',
     channels: '채널',
     terminal: '터미널',
@@ -394,6 +396,34 @@ export default {
     noWorkers: 'Worker 없음',
     sessionsByProfile: 'Profile별 세션',
     noActiveSessions: '활성 세션 없음',
+  },
+
+  journey: {
+    title: '학습 경로',
+    play: '학습 경로 재생',
+    pause: '학습 경로 일시정지',
+    refresh: '새로고침',
+    loadFailed: '학습 경로를 불러오지 못했습니다',
+    nodes: '노드',
+    edges: '연결',
+    skills: '스킬',
+    memories: '메모리',
+    clusters: '클러스터',
+    profile: '프로필',
+    source: '소스',
+    learnedSkills: '학습된 스킬',
+    memorySkillEdges: '메모리 링크',
+    allKinds: '모든 종류',
+    allCategories: '모든 카테고리',
+    searchPlaceholder: '노드 검색',
+    noClusters: '클러스터 없음',
+    noNodes: '학습 경로 노드 없음',
+    noCategory: '미분류',
+    category: '카테고리',
+    useCount: '사용 횟수',
+    createdBy: '생성자',
+    timestamp: '시간',
+    pinned: '고정됨',
   },
 
   // 서랍
@@ -2124,6 +2154,7 @@ export default {
 
   // 변경 이력
   changelog: {
+    new_0_6_25_1: 'Hermes Agent 0.18.0에서 Agent Bridge 승인 메모리 wrapper가 새 has_host_access 매개변수를 전달하지 않아 execute_code가 실패하던 문제를 수정했습니다',
     new_0_6_24_1: '이번 릴리스는 0.6.23 이후 병합된 PR을 반영하며 채팅 입력, workspace 표시, 플러그인 관리, 기본 모델, workspace diff 확인을 개선합니다',
     new_0_6_24_2: '단일 채팅과 그룹 채팅 입력 영역은 통합 툴바, 간결한 모델 컨트롤, 모아진 입력 설정, 더 명확한 context 사용량, 모바일 chrome, 단일 채팅 수동 높이 조절 복구를 포함합니다',
     new_0_6_24_3: 'Workspace run 변경 사항은 지속되는 chat diff 카드로 표시되며 오른쪽 drawer에서 diff 보기와 파일 편집을 지원하고 session resume 후에도 복원되며 모바일 보기도 조정되었습니다',

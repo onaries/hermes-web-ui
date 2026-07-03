@@ -1,7 +1,7 @@
 export default {
   // ログイン
   login: {
-    title: 'Hermes Web UI',
+    title: 'Hermes Studio',
     description: 'ユーザー名とパスワードを入力して続行してください。',
     placeholder: 'アクセストークン',
     submit: 'ログイン',
@@ -18,6 +18,7 @@ export default {
     tooManyAttempts: 'ログイン試行回数が多すぎます。しばらくしてからお試しください',
     lockResetHint: '自分のサーバーの場合は、次のコマンドでログインロックを解除できます:',
     defaultLoginResetHint: '既定の admin パスワードをリセットするには、次を実行してください:',
+    desktopLockResetHint: 'Too many failed login attempts. Open the system tray menu and choose Reset Login to reset the password.',
     sessionExpired: 'ログインの有効期限が切れました。再度ログインしてください。',
     accessDenied: 'このリソースにアクセスする権限がありません。',
     passwordMismatch: 'パスワードが一致しません',
@@ -195,6 +196,7 @@ export default {
     logs: 'ログ',
     usage: '使用量',
     performance: 'パフォーマンス',
+    journey: '学習履歴',
     skillsUsage: 'スキル使用状況',
     channels: 'チャンネル',
     terminal: 'ターミナル',
@@ -394,6 +396,34 @@ export default {
     noWorkers: 'Worker はありません',
     sessionsByProfile: 'Profile 別セッション',
     noActiveSessions: 'アクティブセッションはありません',
+  },
+
+  journey: {
+    title: '学習履歴',
+    play: '学習履歴を再生',
+    pause: '学習履歴を一時停止',
+    refresh: '更新',
+    loadFailed: '学習履歴の読み込みに失敗しました',
+    nodes: 'ノード',
+    edges: '接続',
+    skills: 'スキル',
+    memories: 'メモリ',
+    clusters: 'クラスタ',
+    profile: 'プロファイル',
+    source: 'ソース',
+    learnedSkills: '学習済みスキル',
+    memorySkillEdges: 'メモリリンク',
+    allKinds: 'すべての種類',
+    allCategories: 'すべてのカテゴリ',
+    searchPlaceholder: 'ノードを検索',
+    noClusters: 'クラスタはありません',
+    noNodes: '学習履歴ノードはありません',
+    noCategory: '未分類',
+    category: 'カテゴリ',
+    useCount: '使用回数',
+    createdBy: '作成者',
+    timestamp: '時刻',
+    pinned: 'ピン留め',
   },
 
   // ドロワー
@@ -2124,6 +2154,7 @@ export default {
 
   // 更新履歴
   changelog: {
+    new_0_6_25_1: 'Hermes Agent 0.18.0 で Agent Bridge の approval memory wrapper が新しい has_host_access パラメータを転送せず execute_code が失敗する問題を修正しました',
     new_0_6_24_1: 'このリリースは 0.6.23 以降にマージされた PR を反映し、チャット入力、workspace 表示、plugin 管理、default model、workspace diff 確認を改善しました',
     new_0_6_24_2: '単独チャットとグループチャットの入力欄は統合ツールバー、コンパクトな model 操作、まとまった入力設定、見やすい context 使用量、mobile chrome、単独チャットの手動リサイズ復旧に対応しました',
     new_0_6_24_3: 'Workspace run の変更は永続的な chat diff card として表示され、右側 drawer で diff 表示と file 編集ができ、session resume 後も復元され、mobile 表示も調整されました',

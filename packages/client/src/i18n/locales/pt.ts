@@ -1,7 +1,7 @@
 export default {
   // Login
   login: {
-    title: 'Hermes Web UI',
+    title: 'Hermes Studio',
     description: 'Insira seu nome de usuario e senha para continuar.',
     placeholder: 'Token de acesso',
     submit: 'Entrar',
@@ -18,6 +18,7 @@ export default {
     tooManyAttempts: 'Muitas tentativas falhadas, por favor tente novamente mais tarde',
     lockResetHint: 'Se este for seu servidor, limpe o bloqueio de login com:',
     defaultLoginResetHint: 'Para redefinir a senha admin padrao, execute:',
+    desktopLockResetHint: 'Too many failed login attempts. Open the system tray menu and choose Reset Login to reset the password.',
     sessionExpired: 'Login expirado. Entre novamente.',
     accessDenied: 'Voce nao tem permissao para acessar este recurso.',
     passwordMismatch: 'As senhas nao conferem',
@@ -195,6 +196,7 @@ export default {
     logs: 'Logs',
     usage: 'Uso',
     performance: 'Desempenho',
+    journey: 'Jornada',
     skillsUsage: 'Uso de habilidades',
     channels: 'Canais',
     terminal: 'Terminal',
@@ -394,6 +396,34 @@ export default {
     noWorkers: 'Nenhum Worker',
     sessionsByProfile: 'Sessões por Profile',
     noActiveSessions: 'Nenhuma sessão ativa',
+  },
+
+  journey: {
+    title: 'Jornada de aprendizado',
+    play: 'Reproduzir jornada',
+    pause: 'Pausar jornada',
+    refresh: 'Atualizar',
+    loadFailed: 'Falha ao carregar a jornada',
+    nodes: 'Nos',
+    edges: 'Conexoes',
+    skills: 'Habilidades',
+    memories: 'Memorias',
+    clusters: 'Grupos',
+    profile: 'Profile',
+    source: 'Origem',
+    learnedSkills: 'Habilidades aprendidas',
+    memorySkillEdges: 'Links de memoria',
+    allKinds: 'Todos os tipos',
+    allCategories: 'Todas as categorias',
+    searchPlaceholder: 'Buscar nos',
+    noClusters: 'Sem grupos',
+    noNodes: 'Sem nos de jornada',
+    noCategory: 'Sem categoria',
+    category: 'Categoria',
+    useCount: 'Usos',
+    createdBy: 'Criado por',
+    timestamp: 'Hora',
+    pinned: 'Fixado',
   },
 
   // Gaveta
@@ -2125,6 +2155,7 @@ jobTriggered: 'Job acionado',
 
   // Registro de alteracoes
   changelog: {
+    new_0_6_25_1: 'Corrige falhas de execute_code com Hermes Agent 0.18.0 ao encaminhar o novo parametro has_host_access pelo wrapper de memoria de aprovacoes do Agent Bridge',
     new_0_6_24_1: 'Esta versao cobre os PRs mesclados depois da 0.6.23 e melhora entrada de chat, visibilidade de workspaces, gestao de plugins, modelos padrao e revisao de diffs',
     new_0_6_24_2: 'As entradas de chat individual e em grupo usam uma barra integrada, controles compactos de modelo, configuracoes agrupadas, uso de contexto mais claro, melhor mobile chrome e redimensionamento manual restaurado no chat individual',
     new_0_6_24_3: 'Mudancas de workspace run aparecem como cards de diff persistentes com drawer lateral para ver diffs e editar arquivos, restaurados apos retomar a sessao e ajustados para mobile',

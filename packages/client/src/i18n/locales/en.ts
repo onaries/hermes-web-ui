@@ -1,7 +1,7 @@
 export default {
   // Login
   login: {
-    title: 'Hermes Web UI',
+    title: 'Hermes Studio',
     description: 'Enter your username and password to continue.',
     placeholder: 'Access token',
     submit: 'Login',
@@ -18,6 +18,7 @@ export default {
     tooManyAttempts: 'Too many failed attempts, please try again later',
     lockResetHint: 'If this is your server, clear the login lock with:',
     defaultLoginResetHint: 'To reset the default admin password, run:',
+    desktopLockResetHint: 'Too many failed login attempts. Open the system tray menu and choose Reset Login to reset the password.',
     sessionExpired: 'Login expired. Please sign in again.',
     accessDenied: 'You do not have permission to access this resource.',
     passwordMismatch: 'Passwords do not match',
@@ -197,6 +198,7 @@ export default {
     logs: 'Logs',
     usage: 'Usage',
     performance: 'Performance',
+    journey: 'Journey',
     skillsUsage: 'Skills Usage',
     channels: 'Channels',
     gateways: 'Gateways',
@@ -394,6 +396,34 @@ export default {
     noWorkers: 'No workers',
     sessionsByProfile: 'Sessions by Profile',
     noActiveSessions: 'No active sessions',
+  },
+
+  journey: {
+    title: 'Learning Journey',
+    play: 'Play journey',
+    pause: 'Pause journey',
+    refresh: 'Refresh',
+    loadFailed: 'Failed to load learning journey',
+    nodes: 'Nodes',
+    edges: 'Edges',
+    skills: 'Skills',
+    memories: 'Memories',
+    clusters: 'Clusters',
+    profile: 'Profile',
+    source: 'Source',
+    learnedSkills: 'Learned skills',
+    memorySkillEdges: 'Memory links',
+    allKinds: 'All kinds',
+    allCategories: 'All categories',
+    searchPlaceholder: 'Search nodes',
+    noClusters: 'No clusters',
+    noNodes: 'No journey nodes',
+    noCategory: 'Uncategorized',
+    category: 'Category',
+    useCount: 'Use count',
+    createdBy: 'Created by',
+    timestamp: 'Time',
+    pinned: 'Pinned',
   },
 
   // Drawer
@@ -2549,6 +2579,7 @@ export default {
 
   // Changelog
   changelog: {
+    new_0_6_25_1: 'Fixed execute_code failures with Hermes Agent 0.18.0 by forwarding the new has_host_access guard parameter through the Agent Bridge approval memory wrapper',
     new_0_6_24_1: 'This release covers the PRs merged after 0.6.23, focusing on chat input polish, workspace visibility, plugin management, model defaults, and workspace diff review',
     new_0_6_24_2: 'Chat and group chat inputs now use a refreshed toolbar with compact model controls, grouped input settings, clearer context usage, mobile-friendly chrome, and restored manual single-chat input resizing',
     new_0_6_24_3: 'Workspace run changes now appear as durable chat diff cards with a right-side diff/editor drawer, restored after session resume and tuned for mobile viewing',
