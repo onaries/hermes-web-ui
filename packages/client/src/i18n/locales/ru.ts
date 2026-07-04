@@ -526,6 +526,7 @@ export default {
     agent: 'Agent',
     agentGroups: {
       codex: 'Codex',
+      ekkoAgent: 'Ekko Agent',
       claudeCode: 'Claude Code',
       hermes: 'Hermes',
     },

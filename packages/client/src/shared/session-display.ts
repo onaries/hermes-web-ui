@@ -20,7 +20,7 @@ const SOURCE_LABELS: Record<string, string> = {
   cron: 'Cron',
 }
 
-export type SessionAgentKind = 'codex' | 'claude-code' | 'hermes'
+export type SessionAgentKind = 'codex' | 'ekko-agent' | 'claude-code' | 'hermes'
 
 export interface SessionAgentLike {
   source?: string | null
@@ -34,16 +34,18 @@ export interface SessionAgentGroup<T extends SessionAgentLike> {
   sessions: T[]
 }
 
-export const SESSION_AGENT_GROUP_ORDER: readonly SessionAgentKind[] = ['codex', 'claude-code', 'hermes']
+export const SESSION_AGENT_GROUP_ORDER: readonly SessionAgentKind[] = ['codex', 'ekko-agent', 'claude-code', 'hermes']
 
 const SESSION_AGENT_GROUP_LABEL_KEYS: Record<SessionAgentKind, string> = {
   codex: 'chat.agentGroups.codex',
+  'ekko-agent': 'chat.agentGroups.ekkoAgent',
   'claude-code': 'chat.agentGroups.claudeCode',
   hermes: 'chat.agentGroups.hermes',
 }
 
 const SESSION_AGENT_LOGOS: Record<SessionAgentKind, { label: string; src: string }> = {
   codex: { label: 'Codex', src: '/coding-agents/codex-openai.png' },
+  'ekko-agent': { label: 'Ekko Agent', src: '/coding-agents/ekko-agent.png' },
   'claude-code': { label: 'Claude Code', src: '/coding-agents/claude-code.svg' },
   hermes: { label: 'Hermes', src: '/coding-agents/hermes.png' },
 }
@@ -56,6 +58,7 @@ export function getSourceLabel(source?: string): string {
 export function getSessionAgentKind(session: SessionAgentLike): SessionAgentKind {
   if (session.source === 'coding_agent') {
     if (session.codingAgentId === 'codex' || session.agent === 'codex') return 'codex'
+    if (session.codingAgentId === 'ekko-agent' || session.agent === 'ekko-agent') return 'ekko-agent'
     return 'claude-code'
   }
   return 'hermes'
