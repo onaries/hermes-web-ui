@@ -8,7 +8,7 @@ import { useSettingsStore } from '@/stores/hermes/settings'
 import ChatInput from '@/components/hermes/chat/ChatInput.vue'
 
 const fetchSkillsMock = vi.hoisted(() => vi.fn())
-const listFilesMock = vi.hoisted(() => vi.fn())
+const searchFilesMock = vi.hoisted(() => vi.fn())
 const readFileMock = vi.hoisted(() => vi.fn())
 
 vi.mock('vue-i18n', () => ({
@@ -57,7 +57,7 @@ vi.mock('@/api/hermes/skills', () => ({
 }))
 
 vi.mock('@/api/hermes/files', () => ({
-  listFiles: listFilesMock,
+  searchFiles: searchFilesMock,
   readFile: readFileMock,
 }))
 
@@ -95,8 +95,8 @@ describe('ChatInput draft persistence', () => {
     window.innerWidth = 1024
     fetchSkillsMock.mockReset()
     fetchSkillsMock.mockResolvedValue({ categories: [], archived: [] })
-    listFilesMock.mockReset()
-    listFilesMock.mockResolvedValue({ entries: [], path: '' })
+    searchFilesMock.mockReset()
+    searchFilesMock.mockResolvedValue({ entries: [], path: '' })
     readFileMock.mockReset()
   })
 
@@ -354,17 +354,12 @@ describe('ChatInput draft persistence', () => {
   it('attaches a workspace file from @ mention autocomplete', async () => {
     const createObjectURL = vi.fn(() => 'blob:mention-test')
     Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectURL })
-    listFilesMock.mockImplementation(async (path: string) => ({
-      path,
-      entries: path === '/repo'
-        ? [
-            { name: 'src', path: '/repo/src', isDir: true, size: 0, modTime: '' },
-            { name: 'README.md', path: '/repo/README.md', isDir: false, size: 12, modTime: '' },
-          ]
-        : [
-            { name: 'app.ts', path: '/repo/src/app.ts', isDir: false, size: 18, modTime: '' },
-          ],
-    }))
+    searchFilesMock.mockResolvedValue({
+      path: '/repo',
+      entries: [
+        { name: 'app.ts', path: '/repo/src/app.ts', isDir: false, size: 18, modTime: '' },
+      ],
+    })
     let resolveReadFile: (value: { content: string; path: string; size: number }) => void = () => {}
     readFileMock.mockReturnValue(new Promise(resolve => {
       resolveReadFile = resolve
@@ -376,7 +371,7 @@ describe('ChatInput draft persistence', () => {
     await flushPromises()
     await nextTick()
 
-    expect(listFilesMock).toHaveBeenCalledWith('/repo', 'work')
+    expect(searchFilesMock).toHaveBeenCalledWith('/repo', 'app', 'work', 20)
     expect(wrapper.text()).toContain('app.ts')
 
     await wrapper.get('.file-mention-item').trigger('mousedown')

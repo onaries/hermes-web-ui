@@ -49,6 +49,9 @@ const execFileAsync = promisify(execFile)
 const MAX_GIT_DIFF_BYTES = 512 * 1024
 const MAX_SYNTHETIC_UNTRACKED_BYTES = 96 * 1024
 const MAX_UNTRACKED_FILES = 25
+const MAX_FILE_SEARCH_SCAN = 2000
+const MAX_FILE_SEARCH_RESULTS = 50
+const FILE_SEARCH_SKIP_DIRS = new Set(['.git', 'node_modules', 'dist', 'build', '.next', '.nuxt', 'coverage'])
 
 interface GitStatusEntry {
   path: string
@@ -235,6 +238,56 @@ fileRoutes.get('/api/hermes/files/list', async (ctx) => {
       return withAbsolutePath(ctx, { ...entry, path })
     })
     ctx.body = { entries: responseEntries, path: relativePath, absolutePath: absPath }
+  } catch (err: any) {
+    handleError(ctx, err)
+  }
+})
+
+// GET /api/hermes/files/search?path=&q=
+fileRoutes.get('/api/hermes/files/search', async (ctx) => {
+  const rootPath = (ctx.query.path as string) || ''
+  const query = String(ctx.query.q || '').trim().toLowerCase()
+  const limitValue = Number(ctx.query.limit || MAX_FILE_SEARCH_RESULTS)
+  const limit = Math.min(Math.max(Number.isFinite(limitValue) ? limitValue : MAX_FILE_SEARCH_RESULTS, 1), MAX_FILE_SEARCH_RESULTS)
+  try {
+    const provider = await createRequestFileProvider(ctx)
+    const rootAbsPath = resolveRequestPath(ctx, rootPath)
+    const absoluteRoot = Boolean(rootPath && isAbsolute(rootPath))
+    const results: any[] = []
+    const queue: Array<{ absPath: string; depth: number }> = [{ absPath: rootAbsPath, depth: 0 }]
+    let scanned = 0
+
+    // ponytail: bounded BFS for @file search; use fd/ripgrep indexing if huge repos outgrow this.
+    while (queue.length && scanned < MAX_FILE_SEARCH_SCAN && results.length < limit) {
+      const current = queue.shift()!
+      let entries = [] as Awaited<ReturnType<typeof provider.listDir>>
+      try {
+        entries = await provider.listDir(current.absPath)
+      } catch {
+        continue
+      }
+      entries.sort((a, b) => {
+        if (a.isDir !== b.isDir) return a.isDir ? -1 : 1
+        return a.name.localeCompare(b.name)
+      })
+      for (const entry of entries) {
+        const path = absoluteRoot ? resolve(current.absPath, entry.name) : entry.path
+        if (entry.isDir) {
+          if (current.depth < 8 && !FILE_SEARCH_SKIP_DIRS.has(entry.name)) {
+            queue.push({ absPath: resolveRequestPath(ctx, path), depth: current.depth + 1 })
+          }
+          continue
+        }
+        scanned += 1
+        const haystack = `${entry.name} ${path}`.toLowerCase()
+        if (!query || haystack.includes(query)) {
+          results.push(withAbsolutePath(ctx, { ...entry, path, isDir: false }))
+          if (results.length >= limit) break
+        }
+        if (scanned >= MAX_FILE_SEARCH_SCAN) break
+      }
+    }
+    ctx.body = { entries: results, path: rootPath, absolutePath: rootAbsPath }
   } catch (err: any) {
     handleError(ctx, err)
   }

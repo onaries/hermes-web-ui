@@ -115,6 +115,47 @@ describe('file routes path metadata', () => {
     }
   })
 
+  it('searches workspace files recursively for @ mentions', async () => {
+    const originalWorkspaceBase = process.env.WORKSPACE_BASE
+    process.env.WORKSPACE_BASE = '/home/agent'
+    provider.listDir.mockImplementation(async (path: string) => {
+      if (path === '/home/agent/repo') {
+        return [
+          { name: 'node_modules', path: '/home/agent/repo/node_modules', isDir: true, size: 0, modTime: '' },
+          { name: 'src', path: '/home/agent/repo/src', isDir: true, size: 0, modTime: '' },
+        ]
+      }
+      if (path === '/home/agent/repo/src') {
+        return [
+          { name: 'app.ts', path: '/home/agent/repo/src/app.ts', isDir: false, size: 18, modTime: '' },
+        ]
+      }
+      return []
+    })
+
+    try {
+      const ctx: any = { query: { path: '/home/agent/repo', q: 'app', limit: '8' }, state: superAdminState(), body: null }
+      await runFileRoute('/api/hermes/files/search', ctx)
+
+      expect(provider.listDir).toHaveBeenCalledWith('/home/agent/repo')
+      expect(provider.listDir).toHaveBeenCalledWith('/home/agent/repo/src')
+      expect(provider.listDir).not.toHaveBeenCalledWith('/home/agent/repo/node_modules')
+      expect(ctx.body.entries).toEqual([
+        {
+          name: 'app.ts',
+          path: '/home/agent/repo/src/app.ts',
+          absolutePath: '/home/agent/repo/src/app.ts',
+          isDir: false,
+          size: 18,
+          modTime: '',
+        },
+      ])
+    } finally {
+      if (originalWorkspaceBase === undefined) delete process.env.WORKSPACE_BASE
+      else process.env.WORKSPACE_BASE = originalWorkspaceBase
+    }
+  })
+
   it('returns an absolute path in stat responses', async () => {
     provider.stat.mockResolvedValue({
       name: 'app.log',

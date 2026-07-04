@@ -7,7 +7,7 @@ import { useSettingsStore } from '@/stores/hermes/settings'
 import { fetchContextLength } from '@/api/hermes/sessions'
 import { setModelContext } from '@/api/hermes/model-context'
 import { fetchSkills, type SkillCategory, type SkillInfo } from '@/api/hermes/skills'
-import { listFiles, readFile, type FileEntry } from '@/api/hermes/files'
+import { readFile, searchFiles, type FileEntry } from '@/api/hermes/files'
 import { NButton, NTooltip, NModal, NInputNumber, NPopselect, NDropdown, useMessage, type DropdownOption } from 'naive-ui'
 import { computed, ref, nextTick, onMounted, onUnmounted, watch, h } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -243,6 +243,7 @@ const fileMentionEnd = ref(-1)
 const fileMentionActiveIndex = ref(0)
 const fileMentionCandidates = ref<FileMentionCandidate[]>([])
 let fileMentionLoadedKey = ''
+let fileMentionLoadRequestKey = ''
 let fileMentionLoadRequest: Promise<void> | null = null
 const skillCategories = ref<SkillCategory[]>([])
 const showSkillPicker = ref(false)
@@ -285,15 +286,7 @@ const filteredBridgeCommands = computed(() => {
     return name.startsWith(query) || insertText?.startsWith(query) || description.includes(query)
   })
 })
-const filteredFileMentions = computed(() => {
-  const query = fileMentionQuery.value.trim().toLowerCase()
-  const files = fileMentionCandidates.value
-  if (!query) return files.slice(0, 8)
-  return files.filter(file =>
-    file.name.toLowerCase().includes(query)
-    || file.relativeLabel.toLowerCase().includes(query),
-  ).slice(0, 8)
-})
+const filteredFileMentions = computed(() => fileMentionCandidates.value.slice(0, 8))
 const filteredSkillPickerItems = computed(() => {
   const query = skillSearch.value.trim().toLowerCase()
   if (!query) return skillPickerItems.value
@@ -344,8 +337,8 @@ function activeWorkspaceRoot() {
   return chatStore.activeSession?.workspace || ''
 }
 
-function fileMentionKey() {
-  return `${chatStore.activeSession?.profile || profilesStore.activeProfileName || 'default'}|${activeWorkspaceRoot()}`
+function fileMentionKey(query = fileMentionQuery.value) {
+  return `${chatStore.activeSession?.profile || profilesStore.activeProfileName || 'default'}|${activeWorkspaceRoot()}|${query}`
 }
 
 function mentionLabel(path: string, root: string) {
@@ -355,37 +348,32 @@ function mentionLabel(path: string, root: string) {
 }
 
 async function loadFileMentionCandidates() {
-  const key = fileMentionKey()
-  if (fileMentionLoadedKey === key || fileMentionLoadRequest) return fileMentionLoadRequest
+  const query = fileMentionQuery.value.trim()
+  const key = fileMentionKey(query)
+  if (fileMentionLoadedKey === key) return
+  if (fileMentionLoadRequest && fileMentionLoadRequestKey === key) return fileMentionLoadRequest
   const root = activeWorkspaceRoot()
   const profile = chatStore.activeSession?.profile || profilesStore.activeProfileName || undefined
-  // ponytail: client-side capped scan; add server-side search when huge repos make this slow.
+  fileMentionLoadRequestKey = key
   fileMentionLoadRequest = (async () => {
-    const files: FileMentionCandidate[] = []
-    const queue: Array<{ path: string; depth: number }> = [{ path: root, depth: 0 }]
-    const skipDirs = new Set(['.git', 'node_modules', 'dist', 'build', '.next', '.nuxt', 'coverage'])
-    while (queue.length && files.length < 200) {
-      const current = queue.shift()!
-      let entries: FileEntry[] = []
-      try {
-        entries = (await listFiles(current.path, profile)).entries || []
-      } catch {
-        continue
-      }
-      for (const entry of entries) {
-        if (entry.isDir) {
-          if (current.depth < 4 && !skipDirs.has(entry.name)) queue.push({ path: entry.path, depth: current.depth + 1 })
-          continue
-        }
-        files.push({ ...entry, relativeLabel: mentionLabel(entry.path, root) })
-        if (files.length >= 200) break
-      }
+    try {
+      const entries = (await searchFiles(root, query, profile, 20)).entries || []
+      if (fileMentionKey(query) !== key) return
+      fileMentionCandidates.value = entries.map(entry => ({
+        ...entry,
+        relativeLabel: mentionLabel(entry.path, root),
+      }))
+      fileMentionLoadedKey = key
+    } catch {
+      if (fileMentionKey(query) !== key) return
+      fileMentionCandidates.value = []
+      fileMentionLoadedKey = key
     }
-    if (fileMentionKey() !== key) return
-    fileMentionCandidates.value = files
-    fileMentionLoadedKey = key
   })().finally(() => {
-    fileMentionLoadRequest = null
+    if (fileMentionLoadRequestKey === key) {
+      fileMentionLoadRequest = null
+      fileMentionLoadRequestKey = ''
+    }
   })
   return fileMentionLoadRequest
 }

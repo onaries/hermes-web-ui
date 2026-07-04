@@ -37,6 +37,14 @@ export async function listFiles(path: string = '', profile?: string | null): Pro
   return request<{ entries: FileEntry[]; path: string }>(`/api/hermes/files/list${query ? `?${query}` : ''}`)
 }
 
+export async function searchFiles(path: string = '', q: string = '', profile?: string | null, limit = 20): Promise<{ entries: FileEntry[]; path: string; absolutePath?: string }> {
+  const params = new URLSearchParams({ limit: String(limit) })
+  if (path) params.set('path', path)
+  if (q) params.set('q', q)
+  appendProfile(params, profile)
+  return request<{ entries: FileEntry[]; path: string }>(`/api/hermes/files/search?${params.toString()}`)
+}
+
 export async function statFile(path: string, profile?: string | null): Promise<FileStat> {
   const params = new URLSearchParams({ path })
   appendProfile(params, profile)
