@@ -65,6 +65,15 @@ vi.mock('@/composables/useToolTraceVisibility', () => ({
   useToolTraceVisibility: () => ({ toolTraceVisible: { value: true }, toggleToolTraceVisible: vi.fn() }),
 }))
 
+async function blobText(blob: Blob): Promise<string> {
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(reader.error)
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.readAsText(blob)
+  })
+}
+
 function mountForSession(
   sessionId: string,
   sessionOverrides: Partial<ReturnType<typeof useChatStore>['sessions'][number]> = {},
@@ -387,6 +396,9 @@ describe('ChatInput draft persistence', () => {
     await nextTick()
 
     expect(createObjectURL).toHaveBeenCalled()
+    const attachedFile = (createObjectURL.mock.calls as unknown as unknown[][])[0]?.[0] as File
+    expect(attachedFile.name).toBe('app.ts')
+    expect(await blobText(attachedFile)).toBe('export const ok = true')
     expect(wrapper.find('.attachment-preview').exists()).toBe(true)
     expect(wrapper.text()).toContain('app.ts')
   })
@@ -414,6 +426,43 @@ describe('ChatInput draft persistence', () => {
     await nextTick()
 
     expect(searchFilesMock).toHaveBeenLastCalledWith('/repo', 'rea', 'work', 20)
+    expect(wrapper.text()).toContain('README.md')
+    expect(wrapper.text()).not.toContain('app.ts')
+  })
+
+  it('ignores stale @ mention search results when typing changes before the first search resolves', async () => {
+    let resolveAppSearch: (value: { path: string; entries: any[] }) => void = () => {}
+    searchFilesMock.mockImplementation(async (_path: string, query: string) => {
+      if (query === 'app') {
+        return new Promise(resolve => {
+          resolveAppSearch = resolve
+        })
+      }
+      return {
+        path: '/repo',
+        entries: [{ name: 'README.md', path: '/repo/README.md', isDir: false, size: 12, modTime: '' }],
+      }
+    })
+    const wrapper = mountForSession('session-file-mention-stale-search', { workspace: '/repo', profile: 'work' })
+    const textarea = wrapper.get('textarea')
+
+    await textarea.setValue('look @app')
+    await nextTick()
+    expect(searchFilesMock).toHaveBeenLastCalledWith('/repo', 'app', 'work', 20)
+
+    await textarea.setValue('look @rea')
+    await flushPromises()
+    await nextTick()
+    expect(searchFilesMock).toHaveBeenLastCalledWith('/repo', 'rea', 'work', 20)
+    expect(wrapper.text()).toContain('README.md')
+
+    resolveAppSearch({
+      path: '/repo',
+      entries: [{ name: 'app.ts', path: '/repo/src/app.ts', isDir: false, size: 18, modTime: '' }],
+    })
+    await flushPromises()
+    await nextTick()
+
     expect(wrapper.text()).toContain('README.md')
     expect(wrapper.text()).not.toContain('app.ts')
   })

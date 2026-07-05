@@ -358,14 +358,14 @@ async function loadFileMentionCandidates() {
   fileMentionLoadRequest = (async () => {
     try {
       const entries = (await searchFiles(root, query, profile, 20)).entries || []
-      if (fileMentionKey(query) !== key) return
+      if (fileMentionKey() !== key) return
       fileMentionCandidates.value = entries.map(entry => ({
         ...entry,
         relativeLabel: mentionLabel(entry.path, root),
       }))
       fileMentionLoadedKey = key
     } catch {
-      if (fileMentionKey(query) !== key) return
+      if (fileMentionKey() !== key) return
       fileMentionCandidates.value = []
       fileMentionLoadedKey = key
     }
