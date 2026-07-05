@@ -7,4 +7,6 @@ impact: `@query` in the chat composer now searches the active workspace through 
 
 The Files API exposes a bounded recursive search endpoint for workspace files.
 The chat composer calls it for `@` mentions and keeps the same token cleanup and
-attachment-chip behavior after selecting a result.
+attachment-chip behavior after selecting a result. As the user keeps typing after
+`@`, the composer clears stale candidates immediately and issues a fresh search
+for the new query so the dropdown follows the typed characters.

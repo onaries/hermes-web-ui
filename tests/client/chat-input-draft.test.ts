@@ -391,6 +391,33 @@ describe('ChatInput draft persistence', () => {
     expect(wrapper.text()).toContain('app.ts')
   })
 
+  it('searches workspace files again as the @ mention query changes', async () => {
+    searchFilesMock.mockImplementation(async (_path: string, query: string) => ({
+      path: '/repo',
+      entries: query === 'rea'
+        ? [{ name: 'README.md', path: '/repo/README.md', isDir: false, size: 12, modTime: '' }]
+        : [{ name: 'app.ts', path: '/repo/src/app.ts', isDir: false, size: 18, modTime: '' }],
+    }))
+    const wrapper = mountForSession('session-file-mention-search', { workspace: '/repo', profile: 'work' })
+    const textarea = wrapper.get('textarea')
+
+    await textarea.setValue('look @app')
+    await flushPromises()
+    await nextTick()
+    expect(searchFilesMock).toHaveBeenLastCalledWith('/repo', 'app', 'work', 20)
+    expect(wrapper.text()).toContain('app.ts')
+
+    await textarea.setValue('look @rea')
+    await nextTick()
+    expect(wrapper.text()).not.toContain('app.ts')
+    await flushPromises()
+    await nextTick()
+
+    expect(searchFilesMock).toHaveBeenLastCalledWith('/repo', 'rea', 'work', 20)
+    expect(wrapper.text()).toContain('README.md')
+    expect(wrapper.text()).not.toContain('app.ts')
+  })
+
   it('opens the skill picker from /skill and inserts the selected skill command', async () => {
     fetchSkillsMock.mockResolvedValue({
       categories: [

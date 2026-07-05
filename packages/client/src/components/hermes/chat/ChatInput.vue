@@ -654,11 +654,18 @@ function updateFileMentionState() {
   const match = beforeCursor.match(/(^|\s)@([^@\s]*)$/)
   if (!match) {
     fileMentionActive.value = false
+    fileMentionCandidates.value = []
+    fileMentionLoadedKey = ''
     return
   }
-  fileMentionStart.value = beforeCursor.length - match[2].length - 1
+  const nextQuery = match[2]
+  if (fileMentionQuery.value !== nextQuery) {
+    fileMentionCandidates.value = []
+    fileMentionLoadedKey = ''
+  }
+  fileMentionStart.value = beforeCursor.length - nextQuery.length - 1
   fileMentionEnd.value = cursorPos
-  fileMentionQuery.value = match[2]
+  fileMentionQuery.value = nextQuery
   fileMentionActiveIndex.value = 0
   fileMentionActive.value = true
   void loadFileMentionCandidates()
