@@ -39,6 +39,7 @@ import type { AuthenticatedUser } from '../../../middleware/user-auth'
 import { ensureHermesRunWorkspace } from './workspace'
 import { observeRunChatPetEvent } from '../pet-state-socket'
 import { completeWorkspaceRunCheckpoint, startWorkspaceRunCheckpoint } from './workspace-diff-tracker'
+import { expandBridgeContextReferences } from './context-references'
 
 const BRIDGE_USAGE_FLUSH_DELAY_MS = 200
 const BRIDGE_TITLE_EVENT_POLL_INTERVAL_MS = 500
@@ -326,7 +327,8 @@ export async function handleBridgeRun(
   loadSessionStateFromDbFn: (sid: string, sessionMap: Map<string, SessionState>) => Promise<SessionState>,
   dequeueNextQueuedRun: (socket: Socket, sessionId: string, fallbackProfile?: string) => void,
 ) {
-  const { input, session_id, instructions } = data
+  let input = data.input
+  const { session_id, instructions } = data
   const runSource = data.session_source === 'global_agent' || data.source === 'global_agent'
     ? 'global_agent'
     : data.session_source === 'workflow' || data.source === 'workflow'
@@ -343,6 +345,18 @@ export async function handleBridgeRun(
   const sessionRow = getSession(session_id)
   const workspace = await ensureHermesRunWorkspace(profile, sessionRow?.workspace || data.workspace)
   if (sessionRow && !sessionRow.workspace) updateSession(session_id, { workspace })
+  if (typeof input === 'string' && input.includes('@')) {
+    const expanded = await expandBridgeContextReferences(input, { cwd: workspace })
+    if (expanded.blocked) {
+      socket.emit('run.failed', {
+        event: 'run.failed',
+        session_id,
+        error: expanded.warnings.join('\n') || 'Referenced context is too large.',
+      })
+      return
+    }
+    input = expanded.message
+  }
   const sessionModel = sessionRow?.model || ''
   const sessionProvider = sessionRow?.provider || ''
   const { model: resolvedModel, provider: resolvedProvider } = await resolveBridgeRunModelConfig({
