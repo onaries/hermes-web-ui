@@ -285,10 +285,10 @@ describe('ChatInput draft persistence', () => {
     })
     await nextTick()
 
-    expect(wrapper.find('.context-info').text()).toBe('18.6 chat.liveTps')
+    expect(wrapper.find('.context-info').text()).toContain('18.6 chat.liveTps')
     expect(wrapper.find('.live-tps').exists()).toBe(true)
-    expect(wrapper.find('.live-tps-separator').exists()).toBe(false)
-    expect(wrapper.find('.context-bar').exists()).toBe(false)
+    expect(wrapper.find('.live-tps-separator').exists()).toBe(true)
+    expect(wrapper.find('.context-bar').exists()).toBe(true)
   })
 
   it('hides live TPS when the display setting is disabled', async () => {
@@ -319,7 +319,7 @@ describe('ChatInput draft persistence', () => {
     expect(wrapper.find('.context-bar-fill').attributes('style')).toContain('width: 68.75%')
   })
 
-  it('hides reasoning effort selector for coding-agent sessions', async () => {
+  it('shows reasoning effort selector for coding-agent sessions', async () => {
     const wrapper = mountForSession('session-codex', {
       source: 'coding_agent',
       agent: 'codex',
@@ -327,8 +327,8 @@ describe('ChatInput draft persistence', () => {
     })
     await nextTick()
 
-    expect(wrapper.find('.n-popselect-stub').exists()).toBe(false)
-    expect(wrapper.find('[data-value="high"]').exists()).toBe(false)
+    expect(wrapper.find('.n-popselect-stub').exists()).toBe(true)
+    expect(wrapper.find('[data-value="high"]').exists()).toBe(true)
   })
 
   it('stores the selected reasoning effort for the active session', async () => {

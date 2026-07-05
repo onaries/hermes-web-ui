@@ -796,10 +796,8 @@ let contextLengthRequest: Promise<void> | null = null
 const showContextEditModal = ref(false)
 const editingContextLimit = ref(256000)
 const isSavingContextLimit = ref(false)
-const isCodingAgentSession = computed(() => chatStore.activeSession?.source === 'coding_agent')
 
 async function handleEditContextLimit() {
-  if (isCodingAgentSession.value) return
   editingContextLimit.value = contextLength.value
   showContextEditModal.value = true
 }
@@ -896,7 +894,7 @@ const totalTokens = computed(() => {
   const output = chatStore.activeSession?.outputTokens ?? 0
   return input + output
 })
-const showContextUsage = computed(() => totalTokens.value > 0)
+const showContextUsage = computed(() => !!chatStore.activeSession)
 
 const effectiveContextLength = computed(() => {
   const reported = chatStore.activeSession?.contextLimit
@@ -1353,7 +1351,6 @@ function isImage(type: string): boolean {
           </NTooltip>
 
           <NPopselect
-            v-if="!isCodingAgentSession"
             :value="currentReasoningEffort"
             :options="reasoningEffortOptions"
             trigger="click"
