@@ -123,6 +123,13 @@ const showTerminalSidebarPanel = computed(() =>
   showTerminalSessionList.value && (isMobileViewport.value || !terminalSessionListCollapsed.value),
 );
 const showDesktopSessionCollapseToggle = computed(() => showTerminalSessionList.value && !isMobileViewport.value);
+const TERMINAL_SIDEBAR_MIN_WIDTH = 96;
+const TERMINAL_SIDEBAR_MAX_WIDTH = 320;
+const terminalSidebarWidth = ref(180);
+const isTerminalSidebarResizing = ref(false);
+const terminalSidebarStyle = computed(() => ({
+  "--terminal-sidebar-width": `${terminalSidebarWidth.value}px`,
+}));
 const mobileShortcutBottomOffset = ref(0);
 const mobileShortcutHidden = ref(false);
 const ctrlLatchActive = ref(false);
@@ -139,6 +146,55 @@ function toggleTerminalSessionList(): void {
   const nextCollapsed = !terminalSessionListCollapsed.value;
   terminalSessionListCollapsed.value = nextCollapsed;
   showSidebar.value = isMobileViewport.value && !nextCollapsed;
+}
+
+function setTerminalSidebarWidth(width: number): void {
+  terminalSidebarWidth.value = Math.min(
+    Math.max(Math.round(width), TERMINAL_SIDEBAR_MIN_WIDTH),
+    TERMINAL_SIDEBAR_MAX_WIDTH,
+  );
+  requestAnimationFrame(() => {
+    tryFit();
+    sendResize();
+  });
+}
+
+function handleTerminalSidebarPointerMove(event: PointerEvent): void {
+  if (!isTerminalSidebarResizing.value) return;
+  const rect = terminalRef.value?.closest(".terminal-panel-drawer")?.getBoundingClientRect();
+  if (!rect) return;
+  setTerminalSidebarWidth(event.clientX - rect.left);
+}
+
+function stopTerminalSidebarResize(): void {
+  if (!isTerminalSidebarResizing.value) return;
+  isTerminalSidebarResizing.value = false;
+  document.removeEventListener("pointermove", handleTerminalSidebarPointerMove);
+  document.removeEventListener("pointerup", stopTerminalSidebarResize);
+  document.body.style.cursor = "";
+  document.body.style.userSelect = "";
+}
+
+function startTerminalSidebarResize(event: PointerEvent): void {
+  if (isMobileViewport.value) return;
+  event.preventDefault();
+  isTerminalSidebarResizing.value = true;
+  document.addEventListener("pointermove", handleTerminalSidebarPointerMove);
+  document.addEventListener("pointerup", stopTerminalSidebarResize);
+  document.body.style.cursor = "col-resize";
+  document.body.style.userSelect = "none";
+  handleTerminalSidebarPointerMove(event);
+}
+
+function handleTerminalSidebarResizeKeydown(event: KeyboardEvent): void {
+  const step = event.shiftKey ? 32 : 16;
+  if (event.key === "ArrowLeft") {
+    event.preventDefault();
+    setTerminalSidebarWidth(terminalSidebarWidth.value - step);
+  } else if (event.key === "ArrowRight") {
+    event.preventDefault();
+    setTerminalSidebarWidth(terminalSidebarWidth.value + step);
+  }
 }
 
 let ws: WebSocket | null = null;
@@ -781,6 +837,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  stopTerminalSidebarResize();
   mobileViewportQuery?.removeEventListener?.("change", handleMobileViewportChange);
   mobileViewportQuery = null;
   window.visualViewport?.removeEventListener("resize", updateMobileShortcutBottomOffset);
@@ -811,6 +868,7 @@ onUnmounted(() => {
       v-if="showTerminalSidebarPanel"
       class="terminal-sidebar"
       :class="{ 'mobile-visible': showSidebar }"
+      :style="terminalSidebarStyle"
     >
       <div class="sidebar-header">
         <span class="sidebar-title">{{ t("terminal.sessions") }}</span>
@@ -879,6 +937,16 @@ onUnmounted(() => {
         </button>
       </div>
     </div>
+    <button
+      v-if="showTerminalSidebarPanel && !isMobileViewport"
+      type="button"
+      class="terminal-sidebar-resize-handle"
+      :class="{ resizing: isTerminalSidebarResizing }"
+      :aria-label="t('drawer.resize')"
+      :title="t('drawer.resize')"
+      @pointerdown="startTerminalSidebarResize"
+      @keydown="handleTerminalSidebarResizeKeydown"
+    ></button>
 
     <div class="terminal-main">
       <header class="terminal-header">
@@ -1055,7 +1123,7 @@ $terminal-panel-header-height: 47px;
 }
 
 .terminal-sidebar {
-  width: 180px;
+  width: var(--terminal-sidebar-width, 180px);
   border-right: 1px solid $border-color;
   display: flex;
   flex-direction: column;
@@ -1077,6 +1145,25 @@ $terminal-panel-header-height: 47px;
     &.mobile-visible {
       transform: translateX(0);
     }
+  }
+}
+
+.terminal-sidebar-resize-handle {
+  flex: 0 0 6px;
+  width: 6px;
+  padding: 0;
+  border: 0;
+  border-right: 1px solid $border-color;
+  appearance: none;
+  background: transparent;
+  cursor: col-resize;
+  touch-action: none;
+
+  &:hover,
+  &:focus-visible,
+  &.resizing {
+    background: rgba(var(--accent-primary-rgb), 0.12);
+    outline: none;
   }
 }
 

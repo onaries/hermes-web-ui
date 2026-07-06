@@ -429,7 +429,7 @@ export default {
   // 서랍
   drawer: {
     terminal: '터미널',
-    gitDiff: 'Git Diff',
+    gitDiff: '변경사항',
     artifacts: '아티팩트',
     resize: 'Drawer 크기 조절',
     open: '드로어 열기',
