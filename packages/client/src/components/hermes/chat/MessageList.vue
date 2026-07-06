@@ -34,6 +34,7 @@ import {
   isToolTraceGroup,
   type ToolTraceDisplayItem,
 } from "@/utils/tool-aggregate-summary";
+import { isNamedTool, webSearchQuery } from "@/utils/tool-inline-summary";
 import thinkingImageLight from "@/assets/thinking-light.gif";
 import thinkingImageDark from "@/assets/thinking-dark.gif";
 import { useTheme } from "@/composables/useTheme";
@@ -132,7 +133,7 @@ function fileChangePreview(args: Record<string, unknown>): string {
 
 function usesArgsOnlyLivePreview(toolName: string | undefined): boolean {
   const name = (toolName || '').toLowerCase()
-  return name.includes('terminal') || name === 'command'
+  return name.includes('terminal') || name === 'command' || isNamedTool(toolName, 'web_search')
 }
 
 function fullToolPreview(tool: ToolCallLike): string {
@@ -148,8 +149,8 @@ function fullToolPreview(tool: ToolCallLike): string {
     if (name.includes('terminal') || name === 'command') {
       return firstRawString(args, ['command', 'cmd']) || ''
     }
-    if (name.includes('web_search')) {
-      return firstRawString(args, ['query']) || tool.toolPreview || ''
+    if (isNamedTool(tool.toolName, 'web_search')) {
+      return webSearchQuery(args)
     }
     if (name.includes('file change') || name.includes('file_change')) {
       return fileChangePreview(args) || tool.toolPreview || ''

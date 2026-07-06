@@ -42,6 +42,27 @@ function firstString(record: Record<string, unknown>, keys: string[]): string {
   return ''
 }
 
+export function isNamedTool(toolName: string | undefined, needle: string): boolean {
+  if (!toolName) return false
+  return toolName.toLowerCase().replace(/\s+/g, '_').includes(needle)
+}
+
+export function webSearchQuery(args: Record<string, unknown>): string {
+  const direct = firstString(args, ['query', 'q', 'text'])
+  if (direct) return direct
+  for (const key of ['action', 'input']) {
+    const value = args[key]
+    if (isRecord(value)) {
+      const nested = firstString(value, ['query', 'q', 'text'])
+      if (nested) return nested
+    }
+  }
+  const search = args.search_query ?? args.searchQuery ?? args.queries
+  const first = Array.isArray(search) ? search[0] : search
+  if (typeof first === 'string') return first.trim()
+  return isRecord(first) ? firstString(first, ['query', 'q', 'text']) : ''
+}
+
 function arrayCount(value: unknown): number | null {
   return Array.isArray(value) ? value.length : null
 }
@@ -149,7 +170,7 @@ function genericArgsSummary(t: Translator, args: unknown): string[] {
 function toolSpecificArgsSummary(t: Translator, toolName: string, args: unknown): string[] {
   if (!isRecord(args)) return []
   const name = toolName.toLowerCase()
-  if (name.includes('web_search')) return [rawValue(firstString(args, ['query']))].filter(Boolean) as string[]
+  if (isNamedTool(toolName, 'web_search')) return [rawValue(webSearchQuery(args))].filter(Boolean) as string[]
   if (name.includes('web_extract')) return [countLabel(t, 'urls', arrayCount(args.urls)), keyValue(t, 'url', firstString(args, ['url']))].filter(Boolean) as string[]
   if (name.includes('skill_view')) return [rawValue(firstString(args, ['name']))].filter(Boolean) as string[]
   if (name.includes('read_file')) return [rawValue(firstString(args, ['path']))].filter(Boolean) as string[]
@@ -179,6 +200,7 @@ function compactParts(parts: string[]): string {
 
 function usesArgsOnlyInlineSummary(toolName: string | undefined): boolean {
   const name = (toolName || '').toLowerCase()
+  if (isNamedTool(name, 'web_search')) return true
   return ['web_search', 'skill_view', 'read_file', 'write_file', 'patch', 'terminal', 'file_change'].some(tool => name.includes(tool)) || name === 'command' || name.includes('file change')
 }
 

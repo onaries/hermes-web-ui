@@ -283,6 +283,51 @@ describe('tool trace visibility', () => {
     expect(commandTool.text()).not.toContain('X11 forwarding request failed')
   })
 
+  it('does not show empty Web Search JSON in the live tool preview', () => {
+    const messages: Message[] = [
+      { id: 'user-1', role: 'user', content: 'search', timestamp: 1 },
+      {
+        id: 'tool-web-search',
+        role: 'tool',
+        content: '',
+        timestamp: 2,
+        toolName: 'Web Search',
+        toolArgs: { query: '' },
+        toolPreview: '{"query":""}',
+        toolStatus: 'running',
+      },
+    ]
+
+    const wrapper = mountLiveList(messages)
+    const tool = wrapper.find('.tool-call-item--running')
+
+    expect(tool.exists()).toBe(true)
+    expect(tool.text()).toContain('Web Search')
+    expect(tool.text()).not.toContain('{"query":""}')
+  })
+
+  it('shows nested Web Search action queries in the live tool preview', () => {
+    const messages: Message[] = [
+      { id: 'user-1', role: 'user', content: 'search', timestamp: 1 },
+      {
+        id: 'tool-web-search',
+        role: 'tool',
+        content: '',
+        timestamp: 2,
+        toolName: 'Web Search',
+        toolArgs: { query: '', action: { query: 'Hermes Studio web search display bug' } },
+        toolPreview: '{"query":""}',
+        toolStatus: 'running',
+      },
+    ]
+
+    const wrapper = mountLiveList(messages)
+    const tool = wrapper.find('.tool-call-item--running')
+
+    expect(tool.text()).toContain('Hermes Studio web search display bug')
+    expect(tool.text()).not.toContain('{"query":""}')
+  })
+
   it('shows running terminal tools with the standard spinner only', () => {
     const messages: Message[] = [
       { id: 'user-1', role: 'user', content: 'run a long build', timestamp: Date.now() - 65_000 },

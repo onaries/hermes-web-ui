@@ -1967,9 +1967,26 @@ export class CodingAgentRunManager {
       : itemType === 'mcp_tool_call'
         ? { server: item.server, tool: item.tool || item.name, arguments: item.arguments || item.input }
         : itemType === 'web_search'
-          ? { query: item.query || item.text || '' }
+          ? { query: this.codexWebSearchQuery(item) }
           : { changes: codexFileChangeEntries(item), summary: codexFileChangeSummary(item) }
     return { id, name, arguments: JSON.stringify(args), done: false }
+  }
+
+  private codexWebSearchQuery(item: any): string {
+    const direct = [item?.query, item?.q, item?.text, item?.action?.query, item?.action?.q, item?.input?.query, item?.input?.q]
+    for (const value of direct) {
+      if (typeof value === 'string' && value.trim()) return value.trim()
+    }
+    const search = item?.search_query ?? item?.searchQuery ?? item?.action?.search_query ?? item?.action?.searchQuery ?? item?.queries
+    const first = Array.isArray(search) ? search[0] : search
+    if (typeof first === 'string') return first.trim()
+    if (first && typeof first === 'object') {
+      for (const key of ['query', 'q', 'text']) {
+        const value = first[key]
+        if (typeof value === 'string' && value.trim()) return value.trim()
+      }
+    }
+    return ''
   }
 
   private codexToolOutput(item: any): string {

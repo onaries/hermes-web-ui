@@ -59,6 +59,20 @@ describe('coding agent completion errors', () => {
   })
 })
 
+describe('coding agent Codex tool blocks', () => {
+  it('uses nested web search action queries', () => {
+    const manager = new CodingAgentRunManager()
+    const block = (manager as any).codexToolBlock({
+      id: 'search-1',
+      type: 'web_search',
+      action: { query: 'Hermes Studio web search display bug' },
+    }, 'web_search')
+
+    expect(block.name).toBe('Web Search')
+    expect(JSON.parse(block.arguments)).toEqual({ query: 'Hermes Studio web search display bug' })
+  })
+})
+
 describe('agent runner SSE utilities', () => {
   it('parses event and multi-line data fields', () => {
     expect(parseSseFrame('event: response.output_text.delta\ndata: {"delta":"a"}\ndata: {"delta":"b"}')).toEqual({

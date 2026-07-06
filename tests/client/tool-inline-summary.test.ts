@@ -48,6 +48,18 @@ describe('buildToolInlineSummary', () => {
     expect(summary).toBe('Hermes Studio updater signing')
   })
 
+  it('shows Codex Web Search action queries', () => {
+    const summary = buildToolInlineSummary(
+      'Web Search',
+      { query: '', action: { query: 'Hermes Studio web search display bug' } },
+      undefined,
+      '{"query":""}',
+      t,
+    )
+
+    expect(summary).toBe('Hermes Studio web search display bug')
+  })
+
   it('summarizes terminal commands as the command only', () => {
     const summary = buildToolInlineSummary(
       'terminal',
