@@ -481,10 +481,12 @@ export async function startWebUiServer(
     bridgeStartup.observe(chunk)
     writeProcessOutput('stdout', `[webui] ${chunk}`)
   })
+  serverProc.stdout?.on('error', () => { /* EPIPE: ignore */ })
   serverProc.stderr?.on('data', (chunk: Buffer) => {
     bridgeStartup.observe(chunk)
     writeProcessOutput('stderr', `[webui] ${chunk}`)
   })
+  serverProc.stderr?.on('error', () => { /* EPIPE: ignore */ })
   serverProc.on('exit', (code, signal) => {
     console.error(`[webui] server exited code=${code} signal=${signal}`)
     serverProc = null

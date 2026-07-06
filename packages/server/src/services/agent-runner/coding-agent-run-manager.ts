@@ -3,6 +3,7 @@ import { existsSync, accessSync, chmodSync, constants as fsConstants, readFileSy
 import { homedir } from 'os'
 import { spawn, type ChildProcess } from 'child_process'
 import { createSession, addMessage, getSession, updateSession, updateSessionStats } from '../../db/hermes/session-store'
+import type { ApiMode } from './types'
 import { logger } from '../logger'
 import { applyResponseStreamEvent, flushResponseRunToDb } from '../hermes/run-chat/response-stream'
 import { calcAndUpdateUsage, updateMessageContextTokenUsage } from '../hermes/run-chat/usage'
@@ -63,6 +64,7 @@ export interface CodingAgentRunLaunch {
   profile: string
   provider: string
   model: string
+  apiMode?: ApiMode
   sessionId: string
   agentNativeSessionId?: string
   nativeResume?: boolean
@@ -656,6 +658,7 @@ export class CodingAgentRunManager {
     model?: string
     workspace?: string | null
     reasoningEffort?: string
+    apiMode?: ApiMode
   }): boolean {
     const run = this.getBySession(sessionId)
     if (!run || run.exited) return false
@@ -667,6 +670,8 @@ export class CodingAgentRunManager {
       const model = String(launch.model || '').trim()
       if (provider && run.launch.provider !== provider) return false
       if (model && run.launch.model !== model) return false
+      const apiMode = String(launch.apiMode || '').trim()
+      if (apiMode && String(run.launch.apiMode || '').trim() !== apiMode) return false
     }
     const workspace = String(launch.workspace || '').trim()
     if (workspace && run.launch.workspaceDir !== workspace) return false
@@ -1019,12 +1024,13 @@ export class CodingAgentRunManager {
     createSession({
       id: run.launch.sessionId,
       profile: run.launch.profile,
-        source,
-        agent: run.launch.agentId === 'codex' ? 'codex' : 'claude',
-        agent_session_id: run.id,
-        agent_native_session_id: run.launch.agentNativeSessionId,
-        model: run.launch.model,
+      source,
+      agent: run.launch.agentId === 'codex' ? 'codex' : 'claude',
+      agent_session_id: run.id,
+      agent_native_session_id: run.launch.agentNativeSessionId,
+      model: run.launch.model,
       provider: run.launch.provider,
+      api_mode: run.launch.apiMode || '',
       title: '',
       workspace: run.launch.workspaceDir,
     })

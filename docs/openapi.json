@@ -9369,6 +9369,9 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "api_mode": {
+                    "type": "string"
+                  },
                   "apiMode": {
                     "type": "string"
                   },

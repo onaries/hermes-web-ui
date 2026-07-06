@@ -65,12 +65,14 @@ export async function handleCodingAgentRun(
   const launchProvider = data.provider || (mode === 'scoped' ? storedSession?.provider || undefined : undefined)
   const launchModel = data.model || (mode === 'scoped' ? storedSession?.model || undefined : undefined)
   const launchWorkspace = data.workspace || storedSession?.workspace || undefined
+  const launchApiMode = data.apiMode || data.api_mode || (mode === 'scoped' ? storedSession?.api_mode || undefined : undefined)
   if (runId && !codingAgentRunManager.isSessionLaunchCompatible(sessionId, {
     agentId,
     mode,
     provider: launchProvider,
     model: launchModel,
     workspace: launchWorkspace,
+    apiMode: launchApiMode,
     reasoningEffort: data.reasoning_effort,
   })) {
     codingAgentRunManager.stop(sessionId, { reportClosed: false })
@@ -86,7 +88,7 @@ export async function handleCodingAgentRun(
       workspace: launchWorkspace,
       baseUrl: data.baseUrl || data.base_url,
       apiKey: data.apiKey || data.api_key,
-      apiMode: data.apiMode || data.api_mode,
+      apiMode: launchApiMode,
       reasoningEffort: data.reasoning_effort,
       sessionSource: data.session_source,
     }, state)

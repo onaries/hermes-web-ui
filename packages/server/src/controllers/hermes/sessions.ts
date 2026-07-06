@@ -995,7 +995,7 @@ export async function setWorkspace(ctx: any) {
 }
 
 export async function setModel(ctx: any) {
-  const { model, provider, apiMode } = ctx.request.body as { model?: string; provider?: string; apiMode?: string }
+  const { model, provider, apiMode, api_mode } = ctx.request.body as { model?: string; provider?: string; apiMode?: string; api_mode?: string }
   if (!model || typeof model !== 'string') {
     ctx.status = 400
     ctx.body = { error: 'model is required' }
@@ -1013,21 +1013,22 @@ export async function setModel(ctx: any) {
   const profile = existing?.profile || requestedProfile(ctx) || 'default'
   const cleanModel = model.trim()
   const cleanProvider = (provider || '').trim()
-  const cleanApiMode = normalizeSessionApiMode(apiMode)
+  const cleanApiMode = normalizeSessionApiMode(apiMode ?? api_mode)
   const codingAgentSession = isCodingAgentSession(existing)
   const workspace = !codingAgentSession
     ? await ensureHermesRunWorkspace(profile, existing?.workspace)
     : undefined
   if (!existing) {
-    createSession({ id, profile, title: '', model: cleanModel, provider: cleanProvider, workspace })
+    createSession({ id, profile, title: '', model: cleanModel, provider: cleanProvider, api_mode: cleanApiMode || '', workspace })
   }
   const updates: Record<string, string> = { model: cleanModel, provider: cleanProvider }
   if (cleanApiMode) updates.api_mode = cleanApiMode
+  else if (codingAgentSession && existing && existing.provider !== cleanProvider) updates.api_mode = ''
   if (!codingAgentSession && existing && !existing.workspace && workspace) updates.workspace = workspace
   if (
     codingAgentSession &&
     existing &&
-    (existing.model !== cleanModel || existing.provider !== cleanProvider)
+    (existing.model !== cleanModel || existing.provider !== cleanProvider || (cleanApiMode && existing.api_mode !== cleanApiMode))
   ) {
     updates.agent_native_session_id = ''
   }
