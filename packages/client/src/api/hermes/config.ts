@@ -85,6 +85,13 @@ export interface ProxyConfig {
   ALL_PROXY?: string
   NO_PROXY?: string
 }
+export interface WorkspaceConfig {
+  base?: string
+  effective_base?: string
+  source?: 'env' | 'app' | 'home'
+  env_override?: string
+}
+
 
 export interface AppConfig {
   display?: DisplayConfig
@@ -97,6 +104,7 @@ export interface AppConfig {
   approvals?: ApprovalConfig
   gatewayAutoStart?: GatewayAutoStartConfig
   proxy?: ProxyConfig
+  workspace?: WorkspaceConfig
   telegram?: Record<string, any>
   discord?: Record<string, any>
   slack?: Record<string, any>

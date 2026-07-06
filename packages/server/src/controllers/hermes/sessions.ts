@@ -30,6 +30,7 @@ import { AgentBridgeClient, getAgentBridgeManager } from '../../services/hermes/
 import { ensureHermesRunWorkspace } from '../../services/hermes/run-chat/workspace'
 import { getCodexCodingAgentUsageStats, type CodexAgentUsageRow } from '../../services/codex-usage'
 import { isSensitivePath, MAX_EDIT_SIZE } from '../../services/hermes/file-provider'
+import { getEffectiveWorkspaceBase, useWindowsDriveWorkspaceMode } from '../../services/workspace-base'
 import { readFile, stat as fsStat, writeFile } from 'fs/promises'
 import { normalize as pathNormalize, resolve as pathResolve, win32 as pathWin32 } from 'path' 
 
@@ -1134,13 +1135,6 @@ export async function usageStats(ctx: any) {
   }
 }
 
-function workspaceBaseOverride(): string {
-  return process.env.WORKSPACE_BASE?.trim() || ''
-}
-
-function useWindowsDriveWorkspaceMode(): boolean {
-  return process.platform === 'win32' && !workspaceBaseOverride()
-}
 
 function windowsDriveRoot(pathValue: string): string | null {
   const match = /^([a-zA-Z]:)[\\/]?$/.exec(pathValue.trim())
@@ -1206,10 +1200,9 @@ export async function listWorkspaceFolders(ctx: any) {
   const { resolve, join, win32 } = await import('path')
   const { readdir, stat } = await import('fs/promises')
   const { existsSync } = await import('fs')
-  const { homedir } = await import('os')
 
   const subPath = (ctx.query.path as string) || ''
-  if (useWindowsDriveWorkspaceMode()) {
+  if (await useWindowsDriveWorkspaceMode()) {
     if (!subPath) {
       const drives = await listWindowsWorkspaceDrives()
       ctx.body = { base: '', current: '', roots: drives, folders: drives }
@@ -1257,7 +1250,7 @@ export async function listWorkspaceFolders(ctx: any) {
     return
   }
 
-  const WORKSPACE_BASE = workspaceBaseOverride() || homedir()
+  const WORKSPACE_BASE = await getEffectiveWorkspaceBase()
 
   // Security: prevent path traversal
   const fullPath = resolve(join(WORKSPACE_BASE, subPath))
@@ -1311,8 +1304,7 @@ function invalidWorkspaceFolderName(name: string): boolean {
 
 async function resolveWorkspaceFolderPath(ctx: any, inputPath: string) {
   const { resolve, join } = await import('path')
-  const { homedir } = await import('os')
-  if (useWindowsDriveWorkspaceMode()) {
+  if (await useWindowsDriveWorkspaceMode()) {
     const resolved = normalizeWindowsWorkspacePath(inputPath)
     if (!resolved) {
       ctx.status = 403
@@ -1322,7 +1314,7 @@ async function resolveWorkspaceFolderPath(ctx: any, inputPath: string) {
     return resolved
   }
 
-  const WORKSPACE_BASE = workspaceBaseOverride() || homedir()
+  const WORKSPACE_BASE = await getEffectiveWorkspaceBase()
   const fullPath = resolve(join(WORKSPACE_BASE, inputPath || ''))
   if (!isPathWithin(fullPath, WORKSPACE_BASE)) {
     ctx.status = 403

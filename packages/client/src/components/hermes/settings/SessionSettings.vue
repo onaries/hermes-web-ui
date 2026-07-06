@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { NInputNumber, NSelect, NSwitch, useMessage } from "naive-ui";
+import { computed, ref, watch } from "vue";
+import { NAlert, NButton, NInput, NInputNumber, NSelect, NSpace, NSwitch, NText, useMessage } from "naive-ui";
 import { useI18n } from "vue-i18n";
 import { useSettingsStore } from "@/stores/hermes/settings";
 import { useSessionBrowserPrefsStore } from "@/stores/hermes/session-browser-prefs";
@@ -9,6 +10,24 @@ const settingsStore = useSettingsStore();
 const sessionBrowserPrefsStore = useSessionBrowserPrefsStore();
 const message = useMessage();
 const { t } = useI18n();
+const workspaceBaseDraft = ref("");
+
+watch(() => settingsStore.workspace.base, (value) => {
+  workspaceBaseDraft.value = value || "";
+}, { immediate: true });
+
+const workspaceBaseSourceLabel = computed(() => {
+  const source = settingsStore.workspace.source || "home";
+  if (source === "env") return t("settings.session.workspaceBaseSourceEnv");
+  if (source === "app") return t("settings.session.workspaceBaseSourceApp");
+  return t("settings.session.workspaceBaseSourceHome");
+});
+
+const workspaceBaseEffective = computed(() => settingsStore.workspace.effective_base || "");
+const workspaceBaseLockedByEnv = computed(() => settingsStore.workspace.source === "env");
+const workspaceBaseEnvOverride = computed(() => settingsStore.workspace.env_override || "");
+
+
 
 // 防抖保存：每个字段独立定时器，300ms 内只发最后一次 HTTP 请求
 const debounceTimers: Record<string, ReturnType<typeof setTimeout>> = {};
@@ -57,10 +76,73 @@ async function toggleWriteApproval(section: "memory" | "skills", value: boolean)
   }
 }
 
+async function saveWorkspaceBase() {
+  if (!ensureWorkspaceBaseEditable()) return;
+  try {
+    const base = workspaceBaseDraft.value.trim();
+    settingsStore.updateLocal("workspace", { base });
+    await settingsStore.saveSection("workspace", { base });
+    await settingsStore.fetchSettings();
+    workspaceBaseDraft.value = settingsStore.workspace.base || "";
+    message.success(t("settings.saved"));
+  } catch (err: any) {
+    message.error(err?.message || t("settings.saveFailed"));
+  }
+}
+
+function ensureWorkspaceBaseEditable(): boolean {
+  if (!workspaceBaseLockedByEnv.value) return true;
+  message.warning(t("settings.session.workspaceBaseEnvLocked"));
+  workspaceBaseDraft.value = settingsStore.workspace.base || "";
+  return false;
+}
+
+
+async function resetWorkspaceBase() {
+  workspaceBaseDraft.value = "";
+  if (!ensureWorkspaceBaseEditable()) return;
+  await saveWorkspaceBase();
+}
+
 </script>
 
 <template>
   <section class="settings-section">
+    <SettingRow
+      :label="t('settings.session.workspaceBase')"
+      :hint="t('settings.session.workspaceBaseHint')"
+    >
+      <div class="workspace-base-control">
+        <NSpace align="center" :wrap="false">
+          <NInput
+            v-model:value="workspaceBaseDraft"
+            :placeholder="t('settings.session.workspaceBasePlaceholder')"
+            size="small"
+            class="workspace-base-input"
+            :disabled="workspaceBaseLockedByEnv"
+            @keyup.enter="saveWorkspaceBase"
+          />
+          <NButton size="small" type="primary" :disabled="workspaceBaseLockedByEnv" @click="saveWorkspaceBase">
+            {{ t("common.save") }}
+          </NButton>
+          <NButton size="small" :disabled="workspaceBaseLockedByEnv" @click="resetWorkspaceBase">
+            {{ t("common.reset") }}
+          </NButton>
+        </NSpace>
+        <NText depth="3" class="workspace-base-status">
+          {{ t("settings.session.workspaceBaseEffective", { path: workspaceBaseEffective || "-" }) }}
+          · {{ workspaceBaseSourceLabel }}
+        </NText>
+        <NAlert
+          v-if="workspaceBaseLockedByEnv"
+          type="warning"
+          :show-icon="false"
+          class="workspace-base-alert"
+        >
+          {{ t("settings.session.workspaceBaseEnvOverride", { path: workspaceBaseEnvOverride || workspaceBaseEffective || "-" }) }}
+        </NAlert>
+      </div>
+    </SettingRow>
     <SettingRow
       :label="t('settings.session.requireAuth')"
       :hint="t('settings.session.requireAuthHint')"
@@ -147,5 +229,25 @@ async function toggleWriteApproval(section: "memory" | "skills", value: boolean)
 
 .settings-section {
   margin-top: 16px;
+}
+
+.workspace-base-control {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.workspace-base-input {
+  min-width: 320px;
+}
+
+.workspace-base-status {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.workspace-base-alert {
+  font-size: 12px;
 }
 </style>

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { mkdir, mkdtemp, rm, symlink } from 'fs/promises'
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 
@@ -478,6 +478,44 @@ describe('session conversations controller', () => {
     } finally {
       if (originalWorkspaceBase === undefined) delete process.env.WORKSPACE_BASE
       else process.env.WORKSPACE_BASE = originalWorkspaceBase
+      await rm(workspaceBase, { recursive: true, force: true })
+    }
+  })
+
+  it('uses configured base workspace from Web UI app config', async () => {
+    const originalWorkspaceBase = process.env.WORKSPACE_BASE
+    const originalWebUiHome = process.env.HERMES_WEB_UI_HOME
+    const webUiHome = await mkdtemp(join(tmpdir(), 'hermes-webui-home-'))
+    const workspaceBase = await mkdtemp(join(tmpdir(), 'hermes-workspace-app-base-'))
+
+    try {
+      process.env.WORKSPACE_BASE = ''
+      process.env.HERMES_WEB_UI_HOME = webUiHome
+      const projectDir = join(workspaceBase, 'project')
+      await mkdir(projectDir, { recursive: true })
+      await writeFile(join(webUiHome, 'config.json'), JSON.stringify({
+        workspace: { base: workspaceBase },
+      }), 'utf-8')
+
+      vi.resetModules()
+      const mod = await import('../../packages/server/src/controllers/hermes/sessions')
+      const ctx: any = { query: {}, body: null }
+      await mod.listWorkspaceFolders(ctx)
+
+      expect(ctx.status).toBeUndefined()
+      expect(ctx.body).toEqual({
+        base: workspaceBase,
+        current: '',
+        folders: [
+          { name: 'project', path: 'project', fullPath: projectDir },
+        ],
+      })
+    } finally {
+      if (originalWorkspaceBase === undefined) delete process.env.WORKSPACE_BASE
+      else process.env.WORKSPACE_BASE = originalWorkspaceBase
+      if (originalWebUiHome === undefined) delete process.env.HERMES_WEB_UI_HOME
+      else process.env.HERMES_WEB_UI_HOME = originalWebUiHome
+      await rm(webUiHome, { recursive: true, force: true })
       await rm(workspaceBase, { recursive: true, force: true })
     }
   })

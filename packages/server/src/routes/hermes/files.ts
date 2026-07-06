@@ -2,7 +2,6 @@ import Router from '@koa/router'
 import { execFile } from 'child_process'
 import { existsSync } from 'fs'
 import { readFile } from 'fs/promises'
-import { homedir } from 'os'
 import { resolve, normalize, isAbsolute, relative, sep } from 'path'
 import { promisify } from 'util'
 import { isPathWithin } from '../../services/hermes/hermes-path'
@@ -13,20 +12,21 @@ import {
   MAX_EDIT_SIZE,
 } from '../../services/hermes/file-provider'
 import { requireSuperAdmin } from '../../middleware/user-auth'
+import { getEffectiveWorkspaceBase } from '../../services/workspace-base'
 import { MultipartParseError, parseMultipartBoundary, parseMultipartFilename, splitMultipart } from '../../lib/multipart'
 
 function requestedProfile(ctx: any): string | undefined {
   return ctx.state?.profile?.name
 }
 
-function workspaceBase(): string {
-  return resolve(process.env.WORKSPACE_BASE || process.env.HOME || homedir())
+async function workspaceBase(): Promise<string> {
+  return getEffectiveWorkspaceBase()
 }
 
-function resolveRequestPath(ctx: any, relativePath: string): string {
+async function resolveRequestPath(ctx: any, relativePath: string): Promise<string> {
   if (relativePath && isAbsolute(relativePath)) {
     const absPath = normalize(resolve(relativePath))
-    const base = workspaceBase()
+    const base = await workspaceBase()
     if (!isPathWithin(absPath, base)) {
       throw Object.assign(new Error(`Workspace path is outside WORKSPACE_BASE (${base})`), { code: 'invalid_path' })
     }
@@ -35,12 +35,13 @@ function resolveRequestPath(ctx: any, relativePath: string): string {
   return resolveHermesPath(relativePath, requestedProfile(ctx))
 }
 
+
 async function createRequestFileProvider(ctx: any) {
   return createFileProvider(requestedProfile(ctx))
 }
 
-function withAbsolutePath<T extends { path: string }>(ctx: any, entry: T): T & { absolutePath: string } {
-  return { ...entry, absolutePath: resolveRequestPath(ctx, entry.path) }
+async function withAbsolutePath<T extends { path: string }>(ctx: any, entry: T): Promise<T & { absolutePath: string }> {
+  return { ...entry, absolutePath: await resolveRequestPath(ctx, entry.path) }
 }
 
 export const fileRoutes = new Router()
@@ -224,19 +225,19 @@ function handleError(ctx: any, err: any) {
 fileRoutes.get('/api/hermes/files/list', async (ctx) => {
   const relativePath = (ctx.query.path as string) || ''
   try {
-    const absPath = resolveRequestPath(ctx, relativePath)
+    const absPath = await resolveRequestPath(ctx, relativePath)
     const provider = await createRequestFileProvider(ctx)
     const entries = await provider.listDir(absPath)
     entries.sort((a, b) => {
       if (a.isDir !== b.isDir) return a.isDir ? -1 : 1
       return a.name.localeCompare(b.name)
     })
-    const responseEntries = entries.map(entry => {
+    const responseEntries = await Promise.all(entries.map(entry => {
       const path = relativePath && isAbsolute(relativePath)
         ? `${absPath.replace(/\/$/, '')}/${entry.name}`
         : entry.path
       return withAbsolutePath(ctx, { ...entry, path })
-    })
+    }))
     ctx.body = { entries: responseEntries, path: relativePath, absolutePath: absPath }
   } catch (err: any) {
     handleError(ctx, err)
@@ -251,7 +252,7 @@ fileRoutes.get('/api/hermes/files/search', async (ctx) => {
   const limit = Math.min(Math.max(Number.isFinite(limitValue) ? limitValue : MAX_FILE_SEARCH_RESULTS, 1), MAX_FILE_SEARCH_RESULTS)
   try {
     const provider = await createRequestFileProvider(ctx)
-    const rootAbsPath = resolveRequestPath(ctx, rootPath)
+    const rootAbsPath = await resolveRequestPath(ctx, rootPath)
     const absoluteRoot = Boolean(rootPath && isAbsolute(rootPath))
     const results: any[] = []
     const queue: Array<{ absPath: string; depth: number }> = [{ absPath: rootAbsPath, depth: 0 }]
@@ -274,14 +275,14 @@ fileRoutes.get('/api/hermes/files/search', async (ctx) => {
         const path = absoluteRoot ? resolve(current.absPath, entry.name) : entry.path
         if (entry.isDir) {
           if (current.depth < 8 && !FILE_SEARCH_SKIP_DIRS.has(entry.name)) {
-            queue.push({ absPath: resolveRequestPath(ctx, path), depth: current.depth + 1 })
+            queue.push({ absPath: await resolveRequestPath(ctx, path), depth: current.depth + 1 })
           }
           continue
         }
         scanned += 1
         const haystack = `${entry.name} ${path}`.toLowerCase()
         if (!query || haystack.includes(query)) {
-          results.push(withAbsolutePath(ctx, { ...entry, path, isDir: false }))
+          results.push(await withAbsolutePath(ctx, { ...entry, path, isDir: false }))
           if (results.length >= limit) break
         }
         if (scanned >= MAX_FILE_SEARCH_SCAN) break
@@ -302,10 +303,10 @@ fileRoutes.get('/api/hermes/files/stat', async (ctx) => {
     return
   }
   try {
-    const absPath = resolveRequestPath(ctx, relativePath)
+    const absPath = await resolveRequestPath(ctx, relativePath)
     const provider = await createRequestFileProvider(ctx)
     const info = await provider.stat(absPath)
-    ctx.body = withAbsolutePath(ctx, info)
+    ctx.body = await withAbsolutePath(ctx, info)
   } catch (err: any) {
     handleError(ctx, err)
   }
@@ -322,7 +323,7 @@ fileRoutes.get('/api/hermes/files/git-diff', requireSuperAdmin, async (ctx) => {
 
   try {
     const selectedPath = ctx.query.path ? ensureRepoRelativePath(ctx.query.path as string) : undefined
-    const absWorkspace = resolveRequestPath(ctx, workspace)
+    const absWorkspace = await resolveRequestPath(ctx, workspace)
     const repoRoot = await resolveGitRoot(absWorkspace)
     if (!repoRoot) {
       ctx.body = { isRepo: false, workspace: absWorkspace, files: [], diff: '' }
@@ -380,7 +381,7 @@ fileRoutes.get('/api/hermes/files/read', requireSuperAdmin, async (ctx) => {
     return
   }
   try {
-    const absPath = resolveRequestPath(ctx, relativePath)
+    const absPath = await resolveRequestPath(ctx, relativePath)
     const provider = await createRequestFileProvider(ctx)
     const data = await provider.readFile(absPath)
     if (data.length > MAX_EDIT_SIZE) {
@@ -414,7 +415,7 @@ fileRoutes.put('/api/hermes/files/write', requireSuperAdmin, async (ctx) => {
       ctx.body = { error: 'Content too large', code: 'file_too_large' }
       return
     }
-    const absPath = resolveRequestPath(ctx, relativePath)
+    const absPath = await resolveRequestPath(ctx, relativePath)
     const provider = await createRequestFileProvider(ctx)
     await provider.writeFile(absPath, buf)
     ctx.body = { ok: true, path: relativePath }
@@ -437,7 +438,7 @@ fileRoutes.delete('/api/hermes/files/delete', requireSuperAdmin, async (ctx) => 
     return
   }
   try {
-    const absPath = resolveRequestPath(ctx, relativePath)
+    const absPath = await resolveRequestPath(ctx, relativePath)
     const provider = await createRequestFileProvider(ctx)
     if (recursive) {
       await provider.deleteDir(absPath)
@@ -464,8 +465,8 @@ fileRoutes.post('/api/hermes/files/rename', requireSuperAdmin, async (ctx) => {
     return
   }
   try {
-    const absOld = resolveRequestPath(ctx, oldPath)
-    const absNew = resolveRequestPath(ctx, newPath)
+    const absOld = await resolveRequestPath(ctx, oldPath)
+    const absNew = await resolveRequestPath(ctx, newPath)
     const provider = await createRequestFileProvider(ctx)
     await provider.renameFile(absOld, absNew)
     ctx.body = { ok: true }
@@ -483,7 +484,7 @@ fileRoutes.post('/api/hermes/files/mkdir', requireSuperAdmin, async (ctx) => {
     return
   }
   try {
-    const absPath = resolveRequestPath(ctx, relativePath)
+    const absPath = await resolveRequestPath(ctx, relativePath)
     const provider = await createRequestFileProvider(ctx)
     await provider.mkDir(absPath)
     ctx.body = { ok: true }
@@ -501,8 +502,8 @@ fileRoutes.post('/api/hermes/files/copy', requireSuperAdmin, async (ctx) => {
     return
   }
   try {
-    const absSrc = resolveRequestPath(ctx, srcPath)
-    const absDest = resolveRequestPath(ctx, destPath)
+    const absSrc = await resolveRequestPath(ctx, srcPath)
+    const absDest = await resolveRequestPath(ctx, destPath)
     const provider = await createRequestFileProvider(ctx)
     await provider.copyFile(absSrc, absDest)
     ctx.body = { ok: true }
@@ -569,7 +570,7 @@ fileRoutes.post('/api/hermes/files/upload', requireSuperAdmin, async (ctx) => {
       return
     }
 
-    const absPath = resolveRequestPath(ctx, filePath)
+    const absPath = await resolveRequestPath(ctx, filePath)
     await provider.writeFile(absPath, data)
     results.push({ name: filename, path: filePath })
   }

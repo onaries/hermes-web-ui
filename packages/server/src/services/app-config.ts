@@ -18,6 +18,10 @@ export interface GatewayAutoStartConfig {
   // controller. It is not persisted in the Web UI app config.
   management?: 'auto' | 'per_profile' | 'unified'
 }
+export interface WorkspaceConfig {
+  base?: string
+}
+
 
 function normalizeProfileList(values: unknown): string[] {
   if (!Array.isArray(values)) return []
@@ -43,6 +47,13 @@ export function normalizeGatewayAutoStartConfig(value: unknown): GatewayAutoStar
 
   return normalized
 }
+export function normalizeWorkspaceConfig(value: unknown): WorkspaceConfig {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  const raw = value as Record<string, unknown>
+  const base = typeof raw.base === 'string' ? raw.base.trim() : ''
+  return base ? { base } : {}
+}
+
 
 export interface AppConfig {
   // Whether GitHub Copilot has been explicitly added by the user in web-ui.
@@ -70,6 +81,10 @@ export interface AppConfig {
   // Defaults to legacy behavior: all local profiles are eligible. This is a
   // Web UI-level setting, not the active Hermes profile's config.yaml.
   gatewayAutoStart?: GatewayAutoStartConfig
+
+  // Web UI-level workspace browsing boundary. WORKSPACE_BASE from the process
+  // environment still wins when it is set.
+  workspace?: WorkspaceConfig
 }
 
 let cache: AppConfig | null = null

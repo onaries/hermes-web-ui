@@ -2,11 +2,12 @@ import { readFile } from 'fs/promises'
 import { join } from 'path'
 import { getActiveProfileName, getProfileDir } from '../../services/hermes/hermes-profile'
 import { gatewayAutostartDisabledByEnv, reconcileGatewayManagementTransition, restartGatewayForProfile } from '../../services/hermes/gateway-autostart'
-import { readAppConfig, writeAppConfig, normalizeGatewayAutoStartConfig } from '../../services/app-config'
+import { readAppConfig, writeAppConfig, normalizeGatewayAutoStartConfig, normalizeWorkspaceConfig } from '../../services/app-config'
 import { saveEnvValueForProfile } from '../../services/config-helpers'
 import { logger } from '../../services/logger'
 import { safeFileStore } from '../../services/safe-file-store'
 import { EXCLUSIVE_PLATFORM_CREDENTIAL_KEYS } from '../../services/hermes/profile-credentials'
+import { getWorkspaceConfigResponse, normalizeWorkspaceConfigInput } from '../../services/workspace-base'
 
 const PLATFORM_SECTIONS = new Set([
   'telegram', 'discord', 'slack', 'whatsapp', 'matrix',
@@ -14,7 +15,7 @@ const PLATFORM_SECTIONS = new Set([
   'approvals',
 ])
 
-const APP_CONFIG_SECTIONS = new Set(['gatewayAutoStart'])
+const APP_CONFIG_SECTIONS = new Set(['gatewayAutoStart', 'workspace'])
 const PROXY_ENV_KEYS = ['HTTPS_PROXY', 'HTTP_PROXY', 'ALL_PROXY', 'NO_PROXY'] as const
 
 function requestedProfile(ctx: any): string {
@@ -341,6 +342,7 @@ export async function getConfig(ctx: any) {
     const config = await readConfig(profile)
     const gatewayAutoStart = await readGatewayAutoStartForResponse()
     const proxy = await readProxyEnv(profile)
+    const workspace = await getWorkspaceConfigResponse()
     const envPlatforms = await readEnvPlatforms(profile)
     if (Object.keys(envPlatforms).length > 0) {
       const existing = config.platforms || {}
@@ -354,6 +356,10 @@ export async function getConfig(ctx: any) {
       const key = section as string
       if (key === 'gatewayAutoStart') {
         ctx.body = { gatewayAutoStart }
+        return
+      }
+      if (key === 'workspace') {
+        ctx.body = { workspace }
         return
       }
       if (key === 'proxy') {
@@ -370,11 +376,13 @@ export async function getConfig(ctx: any) {
           ? gatewayAutoStart
           : trimmed === 'proxy'
             ? proxy
-            : (config[trimmed] || {})
+            : trimmed === 'workspace'
+              ? workspace
+              : (config[trimmed] || {})
       }
       ctx.body = result
     } else {
-      ctx.body = { ...config, gatewayAutoStart, proxy }
+      ctx.body = { ...config, gatewayAutoStart, proxy, workspace }
     }
   } catch (err: any) {
     ctx.status = 500; ctx.body = { error: err.message }
@@ -409,6 +417,14 @@ export async function updateConfig(ctx: any) {
     }
 
     if (APP_CONFIG_SECTIONS.has(section)) {
+      if (section === 'workspace') {
+        const appConfig = await readAppConfig()
+        const merged = normalizeWorkspaceConfig({ ...(appConfig.workspace || {}), ...values })
+        const workspaceConfig = await normalizeWorkspaceConfigInput(merged)
+        await writeAppConfig({ workspace: workspaceConfig })
+        ctx.body = { success: true, workspace: await getWorkspaceConfigResponse() }
+        return
+      }
       if (section === 'gatewayAutoStart') {
         const appConfig = await readAppConfig()
         const previousGatewayAutoStart = await readGatewayAutoStartForResponse()
@@ -462,7 +478,7 @@ export async function updateConfig(ctx: any) {
 
     ctx.body = { success: true }
   } catch (err: any) {
-    ctx.status = 500; ctx.body = { error: err.message }
+    ctx.status = err?.status || 500; ctx.body = { error: err.message }
   }
 }
 

@@ -194,6 +194,64 @@ describe('config controller locked file updates', () => {
     })
   })
 
+  it('reads and writes base workspace from Web UI app config', async () => {
+    const originalWorkspaceBase = process.env.WORKSPACE_BASE
+    const workspaceRoot = join(hermesHome, 'workspaces')
+    await mkdir(workspaceRoot, { recursive: true })
+
+    try {
+      process.env.WORKSPACE_BASE = ''
+      await writeFile(join(hermesHome, 'config.yaml'), 'model:\n  default: keep-model\n', 'utf-8')
+      const { updateConfig, getConfig } = await loadController()
+
+      const writeCtx = makeCtx({
+        section: 'workspace',
+        values: { base: workspaceRoot },
+      })
+      await updateConfig(writeCtx)
+
+      expect(writeCtx.body).toEqual({
+        success: true,
+        workspace: {
+          base: workspaceRoot,
+          effective_base: workspaceRoot,
+          source: 'app',
+        },
+      })
+      expect(mockRestartGateway).not.toHaveBeenCalled()
+
+      const persisted = JSON.parse(await readFile(join(hermesHome, 'config.json'), 'utf-8'))
+      expect(persisted.workspace).toEqual({ base: workspaceRoot })
+      const yamlConfig = YAML.load(await readFile(join(hermesHome, 'config.yaml'), 'utf-8')) as any
+      expect(yamlConfig.workspace).toBeUndefined()
+      expect(yamlConfig.model.default).toBe('keep-model')
+
+      const readCtx = makeCtx({})
+      await getConfig(readCtx)
+      expect(readCtx.body.workspace).toEqual({
+        base: workspaceRoot,
+        effective_base: workspaceRoot,
+        source: 'app',
+      })
+    } finally {
+      if (originalWorkspaceBase === undefined) delete process.env.WORKSPACE_BASE
+      else process.env.WORKSPACE_BASE = originalWorkspaceBase
+    }
+  })
+
+  it('rejects invalid base workspace settings', async () => {
+    const { updateConfig } = await loadController()
+    const relativeCtx = makeCtx({
+      section: 'workspace',
+      values: { base: 'relative/path' },
+    })
+
+    await updateConfig(relativeCtx)
+
+    expect(relativeCtx.status).toBe(400)
+    expect(relativeCtx.body).toEqual({ error: 'Workspace base must be an absolute path' })
+  })
+
   it('does not reconcile gateway management when Web UI gateway auto-start is disabled', async () => {
     await writeFile(join(hermesHome, 'config.yaml'), 'model:\n  default: keep-model\n', 'utf-8')
     const { updateConfig } = await loadController()
