@@ -370,7 +370,7 @@ describe('coding agent run state', () => {
     manager.shutdown()
   })
 
-  it('clears shared chat session run state when a print turn completes', () => {
+  it('clears shared chat session run state when a print turn completes', async () => {
     initAllHermesTables()
     const manager = new CodingAgentRunManager()
     const state: any = { messages: [], isWorking: false, events: [], queue: [] }
@@ -407,6 +407,7 @@ describe('coding agent run state', () => {
         },
       },
     })
+    await new Promise(resolve => setTimeout(resolve, 0))
 
     expect(state).toEqual(expect.objectContaining({
       isWorking: false,
@@ -565,6 +566,7 @@ describe('coding agent run state', () => {
       usage: { input_tokens: 12, output_tokens: 7, total_tokens: 19 },
     }))
     ;(manager as any).completeCodexExecTurn(run, run.codexPendingUsage)
+    await new Promise(resolve => setTimeout(resolve, 0))
 
     expect(state.messages).toContainEqual(expect.objectContaining({
       session_id: chatSessionId,
@@ -596,7 +598,7 @@ describe('coding agent run state', () => {
     manager.shutdown()
   })
 
-  it('uses Codex last token usage instead of cumulative token usage for context metering', () => {
+  it('uses Codex last token usage instead of cumulative token usage for context metering', async () => {
     initAllHermesTables()
     const manager = new CodingAgentRunManager()
     const state: any = { messages: [], isWorking: false, events: [], queue: [] }
@@ -660,6 +662,7 @@ describe('coding agent run state', () => {
       },
     }))
     ;(manager as any).completeCodexExecTurn(run, run.codexPendingUsage)
+    await new Promise(resolve => setTimeout(resolve, 0))
 
     expect(state.inputTokens).toBe(75828)
     expect(state.outputTokens).toBe(356)
@@ -680,7 +683,7 @@ describe('coding agent run state', () => {
     manager.shutdown()
   })
 
-  it('uses Codex event_msg token_count usage before cumulative turn completion usage', () => {
+  it('uses Codex event_msg token_count usage before cumulative turn completion usage', async () => {
     initAllHermesTables()
     const manager = new CodingAgentRunManager()
     const state: any = { messages: [], isWorking: false, events: [], queue: [] }
@@ -769,6 +772,7 @@ describe('coding agent run state', () => {
     })
     run.currentChild = undefined
     ;(manager as any).completeCodexExecTurn(run, run.codexPendingUsage)
+    await new Promise(resolve => setTimeout(resolve, 0))
 
     expect(state.inputTokens).toBe(187640)
     expect(state.outputTokens).toBe(345)
@@ -1513,7 +1517,7 @@ describe('coding agent run state', () => {
     manager.shutdown()
   })
 
-  it('waits for Codex process exit before flushing final text after tools', () => {
+  it('waits for Codex process exit before flushing final text after tools', async () => {
     initAllHermesTables()
     const manager = new CodingAgentRunManager()
     const state: any = { messages: [], isWorking: false, events: [], queue: [] }
@@ -1648,6 +1652,7 @@ describe('coding agent run state', () => {
     }))
     run.currentChild = undefined
     ;(manager as any).completeCodexExecTurn(run, run.codexPendingUsage)
+    await new Promise(resolve => setTimeout(resolve, 0))
 
     const textMessages = state.messages.filter((message: any) => message.role === 'assistant' && !message.tool_calls?.length)
     expect(textMessages.map((message: any) => message.content)).toEqual([openingText, finalText])

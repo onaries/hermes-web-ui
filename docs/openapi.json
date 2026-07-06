@@ -9370,10 +9370,20 @@
                 "type": "object",
                 "properties": {
                   "api_mode": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                      "chat_completions",
+                      "codex_responses",
+                      "anthropic_messages"
+                    ]
                   },
                   "apiMode": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                      "chat_completions",
+                      "codex_responses",
+                      "anthropic_messages"
+                    ]
                   },
                   "model": {
                     "type": "string"
