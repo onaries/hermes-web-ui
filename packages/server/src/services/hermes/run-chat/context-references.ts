@@ -4,7 +4,6 @@ import { extname, isAbsolute, relative, resolve } from 'path'
 import { promisify } from 'util'
 import { countTokens } from '../../../lib/context-compressor'
 import { isPathWithin, relativePathFromBase } from '../hermes-path'
-import { isSensitivePath } from '../file-provider'
 
 const execFileAsync = promisify(execFile)
 
@@ -99,7 +98,6 @@ function removeReferenceTokens(message: string, references: ReferenceMatch[]): s
 
 function looksSensitivePath(relativePath: string): boolean {
   const parts = relativePath.replace(/\\/g, '/').split('/').filter(Boolean)
-  if (isSensitivePath(relativePath)) return true
   return parts.some(part => SENSITIVE_PARTS.has(part) || SENSITIVE_NAMES.has(part))
 }
 
